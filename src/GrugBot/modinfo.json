@@ -9,7 +9,6 @@
   ],
   "website": "https://github.com/a-cim/grug-bot",
   "side": "server",
-  "requiredOnClient": false,
   "dependencies": {
     "game": "1.22.0"
   }

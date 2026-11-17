@@ -38,13 +38,15 @@ What we keep from the Option C thinking: **the formatting, escaping and batching
 ```
 grug-bot/
 ├─ src/
-│  ├─ GrugBot/          # the VS mod: modinfo.json, ModSystem, VS event adapters, config
-│  │                    #   net10.0, refs VintagestoryAPI (+ VSEssentials/VSSurvivalMod, Harmony) with Private=false
-│  └─ GrugBot.Core/     # VS-free: message formatting, VTML/Markdown/mention handling, send-queue batching
+│  ├─ GrugBot/          # the VS mod: modinfo.json, ModSystem, VS event adapters, loading/storing the config file
+│  │                    #   net10.0, refs VintagestoryAPI (+ Newtonsoft.Json, protobuf-net; later VSEssentials/VSSurvivalMod) with Private=false
+│  └─ GrugBot.Core/     # VS-free: config classes and defaults, token-source resolution, the "not configured" check,
+│                       #   message formatting, VTML/Markdown/mention handling, send-queue batching
 │                       #   net10.0, no VS references
 ├─ tests/
-│  └─ GrugBot.Core.Tests/   # xUnit: formats from 05-message-format, escaping, batching edges
-├─ build/               # packaging: produces grugbot_<version>.zip (GrugBot.dll, GrugBot.Core.dll, Discord.Net DLLs, modinfo.json)
+│  └─ GrugBot.Core.Tests/   # xUnit: config defaults and token resolution, formats from 05-message-format, escaping, batching edges
+├─ build/               # Package.targets: after `dotnet publish`, writes dist/grugbot_<version>.zip
+│                       #   (GrugBot.dll, GrugBot.Core.dll, Discord.Net DLLs, modinfo.json, LICENSE, THIRD-PARTY-NOTICES.md)
 └─ planning/            # this folder; export-ignored, never packaged
 ```
 
