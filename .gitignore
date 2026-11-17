@@ -1,0 +1,49 @@
+# --- .NET build output ---
+bin/
+obj/
+out/
+publish/
+*.user
+*.suo
+*.userprefs
+*.rsuser
+*.nupkg
+*.snupkg
+TestResults/
+coverage*/
+*.coverage
+
+# --- IDEs ---
+.vs/
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Secrets & local config (never commit tokens) ---
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+secrets*.json
+*.secret.json
+# real mod config (contains the Discord token); commit only grugbot.example.json
+ModConfig/
+grugbot.json
+
+# --- Local VS test data ---
+VintagestoryData/
+Logs/
+*.log
+
+# --- Packaged mod zips ---
+*.zip

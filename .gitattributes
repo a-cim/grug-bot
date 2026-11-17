@@ -1,0 +1,16 @@
+# Normalize line endings; keep scripts sane on the Linux server
+* text=auto eol=lf
+*.cs     text eol=lf diff=csharp
+*.csproj text eol=lf
+*.sln    text eol=crlf
+*.ps1    text eol=crlf
+*.cmd    text eol=crlf
+*.bat    text eol=crlf
+*.sh     text eol=lf
+*.png    binary
+*.dll    binary
+*.zip    binary
+
+# Planning notes are never part of a release (git archive / source zips skip these)
+planning/   export-ignore
+planning/** export-ignore
