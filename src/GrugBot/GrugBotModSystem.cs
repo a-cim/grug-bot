@@ -11,17 +11,13 @@ namespace GrugBot;
 /// Nothing in here may throw: a broken config must never stop the server from starting (01-architecture § Lifecycle).
 /// </summary>
 /// <remarks>
-/// Log calls that include text we don't control (exception messages) use the format-string overloads
-/// with <c>{0}</c>, so stray curly braces in that text can't break the log call.
+/// Logging rules: unexpected errors log the full exception (type, message and stack trace). One case is
+/// deliberate: an unreadable config file logs only the message, because that is almost always a typo
+/// and the message already gives the line and position. Text we don't control goes
+/// through <c>{0}</c> format arguments, so stray curly braces in it can't break the log call.
 /// </remarks>
 public sealed class GrugBotModSystem : ModSystem
 {
-    /// <summary>The loaded config, or <c>null</c> if it could not be read.</summary>
-    internal GrugBotConfig? Config { get; private set; }
-
-    /// <summary>The Discord token and its source, or <c>null</c> until the config is loaded.</summary>
-    internal ResolvedToken? Token { get; private set; }
-
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -31,7 +27,6 @@ public sealed class GrugBotModSystem : ModSystem
         try
         {
             GrugBotConfig? config = LoadOrCreateConfig(api, log);
-            Config = config;
             if (config is null)
             {
                 return;
@@ -40,7 +35,6 @@ public sealed class GrugBotModSystem : ModSystem
             ResolvedToken token = DiscordTokenResolver.Resolve(
                 Environment.GetEnvironmentVariable(DiscordTokenResolver.EnvironmentVariableName),
                 config.DiscordToken);
-            Token = token;
 
             if (!token.IsMissing)
             {
@@ -59,7 +53,7 @@ public sealed class GrugBotModSystem : ModSystem
         }
         catch (Exception e)
         {
-            log.Error("grug-bot failed to start and is off. The server carries on normally. Cause: {0}", e.ToString());
+            log.Error("grug-bot failed to start and is off. The server carries on normally. Cause: {0}", e);
         }
     }
 
@@ -76,6 +70,7 @@ public sealed class GrugBotModSystem : ModSystem
         }
         catch (Exception e)
         {
+            // Message only, on purpose: see the logging rules on this class.
             log.Error(
                 "grug-bot could not read {0}, so the relay is off. Fix the file (or delete it to get a fresh one) and restart. Cause: {1}",
                 GrugBotConfig.DisplayPath,
@@ -97,7 +92,7 @@ public sealed class GrugBotModSystem : ModSystem
         }
         catch (Exception e)
         {
-            log.Error("grug-bot could not write {0}. Cause: {1}", GrugBotConfig.DisplayPath, e.Message);
+            log.Error("grug-bot could not write {0}. Cause: {1}", GrugBotConfig.DisplayPath, e);
         }
 
         return config;
