@@ -33,7 +33,7 @@ SOFTWARE.
 
 ## Discord Bot (discordbot), by bluelightning32 (Kyle Stemen)
 
-- Source: (repo URL to confirm; local copy `discordbot-master(1).zip`)
+- Source: https://github.com/bluelightning32/discordbot
 - Adapted: config ideas (ignore lists, per-route toggles) and the fallback death-message wording.
 
 ```

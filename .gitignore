@@ -39,6 +39,8 @@ secrets*.json
 # real mod config (contains the Discord token); commit only grugbot.example.json
 ModConfig/
 grugbot.json
+# IDE launch profiles can carry env vars such as GRUGBOT_DISCORD_TOKEN
+**/Properties/launchSettings.json
 
 # --- Local VS test data ---
 VintagestoryData/

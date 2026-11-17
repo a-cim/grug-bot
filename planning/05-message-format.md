@@ -8,10 +8,10 @@ Everything posts as a **plain bot message** in **one channel** (decision #10). T
 
 | Event | Discord text (Markdown as sent) | Rendered example |
 |---|---|---|
-| General chat | `**{IGN}:** {text}` | **Kazimiera:** booo |
-| Player joined | `***📥 Player {IGN} connected ({online}/{max})***` | ***📥 Player Ember connected (2/10)*** |
-| Player left | `***📤 Player {IGN} disconnected ({online}/{max})***` | ***📤 Player Kazimiera disconnected (1/10)*** |
-| Death | `***{vanilla death message}***` | ***Player Ember got killed by a nightmare drifter*** |
+| General chat | `**{IGN}:** {text}` | **Grug:** booo |
+| Player joined | `***📥 Player {IGN} connected ({online}/{max})***` | ***📥 Player Ugg connected (2/10)*** |
+| Player left | `***📤 Player {IGN} disconnected ({online}/{max})***` | ***📤 Player Grug disconnected (1/10)*** |
+| Death | `***{vanilla death message}***` | ***Player Ugg got killed by a nightmare drifter*** |
 | Storm approaching | `***⛈️ A {light\|medium\|heavy} temporal storm is approaching***` | ***⛈️ A heavy temporal storm is approaching*** |
 | Storm imminent | `***⛈️ A {strength} temporal storm is imminent***` | |
 | Storm waning | `***⛈️ The temporal storm seems to be waning***` | |
@@ -24,11 +24,11 @@ Notes:
 - **Use literal Unicode emoji** (📥 📤 ⛈️ ✅ ⛔), not th3essentials' `:inbox_tray:` shortcodes. Shortcodes rendered for th3essentials, but literal characters don't depend on Discord expanding them.
 - **`{online}/{max}`:** online = admitted players (minus one on disconnect, because the leaving player is still counted). max = `sapi.Server.Config.MaxClients`.
 - **Deaths:** use vanilla's own sentence, taken via reflection from `ServerSystemEntitySimulation.GetDeathMessage` as th3essentials does. If that breaks, fall back to our own `Player {IGN} died` / `… was killed by {entity}` (the old Discord Bot's `EnumDamageSource` switch). Skip entirely when the world config `disableDeathMessages` is true. *Two identical death lines in a row can be legitimate (a player died twice quickly), so don't de-duplicate.*
-- **Storm wording:** use the game's own `Lang.Get(...)` strings so it matches the in-game text. Approaching, imminent and waning each post once per storm, using th3essentials' thresholds (see 03-reference-mods).
+- **Storm wording:** use the game's own `Lang.Get(...)` strings so it matches the in-game text. Approaching, imminent and waning each post once per storm, using th3essentials' thresholds (see 01-architecture). Waning always posts, even if the storm ends early (#43).
 - **Bot presence:** `players: {online}/{max}`, updated on join and leave. Free, and it matches th3essentials.
 - **Batching:** lines queued within ~1 s are joined with newlines into one Discord message (≤2000 chars), as th3essentials did. Discord would group them under one header anyway, so the screenshot looks the same either way.
 - **Player text:** strip VTML, unescape `&lt;` / `&gt;` / `&amp;`, and neutralise `@everyone`, `@here` and pings (`AllowedMentions.None`). **Markdown passes through** (`*`, `_` and so on still format), which matches th3essentials. A config flag `EscapeMarkdown` (default `false`) is there for the strict version.
-- **IGN** is `IServerPlayer.PlayerName`. There's no role prefix (th3essentials' `ShowRole` is out of scope).
+- **IGN** in the table above means the **shown name** (decisions #35, #36). There's no role prefix (th3essentials' `ShowRole` is out of scope).
 
 ## Discord → Game
 

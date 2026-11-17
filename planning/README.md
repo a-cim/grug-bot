@@ -4,12 +4,15 @@ Working notes for designing grug-bot. **Not part of any release.** This folder i
 
 | File | What's in it |
 |---|---|
-| [01-architecture.md](01-architecture.md) | The options considered, the recommended shape, data flow, and the wire protocol sketch |
+| [01-architecture.md](01-architecture.md) | The options considered, the chosen shape, data flow, config and lifecycle |
 | [02-gotchas.md](02-gotchas.md) | Known traps: .NET 10, Discord intents, echo loops, thebasics proximity IDs, and more |
 | [03-reference-mods.md](03-reference-mods.md) | What we learned from Discord Bot, th3essentials and thebasics |
 | [04-open-questions.md](04-open-questions.md) | Things to decide before coding, plus parked ideas (Global OOC) |
 | [05-message-format.md](05-message-format.md) | Exact Discord/in-game text formats, matching th3essentials' look |
+| [06-test-plan.md](06-test-plan.md) | The v1 checklist: done means all of it passes |
 | [decisions.md](decisions.md) | Running log of settled decisions |
+
+The glossary is [`../CONTEXT.md`](../CONTEXT.md) and the hard-to-reverse decisions are ADRs in [`../docs/adr/`](../docs/adr/). Both are public and outlive this folder.
 
 ## Reference material (local downloads, not in repo)
 
