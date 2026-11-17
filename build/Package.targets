@@ -1,0 +1,56 @@
+<Project>
+
+  <!--
+    Packaging for the grug-bot mod, imported by src/GrugBot/GrugBot.csproj.
+
+    `dotnet publish src/GrugBot/GrugBot.csproj -c Release` runs this after Publish and writes
+    dist/grugbot_<version>.zip, with the version taken from modinfo.json. The zip holds the publish
+    output (GrugBot.dll, GrugBot.Core.dll, modinfo.json, and later the Discord.Net DLLs) plus LICENSE and
+    THIRD-PARTY-NOTICES.md (decision #15). Game assemblies are removed even if a package dependency drags
+    a copy in, as Discord.Net does with Newtonsoft.Json (gotcha #3).
+  -->
+
+  <PropertyGroup>
+    <!-- Evaluated here, outside the target, so MSBuildThisFileDirectory is this file's folder (build/). -->
+    <GrugBotRepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</GrugBotRepoRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Assemblies the game already loads. They must never ship in the mod zip. -->
+    <GrugBotGameAssembly Include="VintagestoryAPI.dll;VintagestoryLib.dll;VSEssentials.dll;VSSurvivalMod.dll;VSCreativeMod.dll;Newtonsoft.Json.dll;0Harmony.dll;protobuf-net.dll" />
+  </ItemGroup>
+
+  <Target Name="GrugBotPackage" AfterTargets="Publish">
+    <PropertyGroup>
+      <GrugBotStageDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'package', 'grugbot'))</GrugBotStageDir>
+      <GrugBotDistDir>$([MSBuild]::NormalizeDirectory('$(GrugBotRepoRoot)', 'dist'))</GrugBotDistDir>
+      <GrugBotZip>$(GrugBotDistDir)grugbot_$(ModVersion).zip</GrugBotZip>
+      <GrugBotPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))</GrugBotPublishDir>
+    </PropertyGroup>
+
+    <!-- If the regex in GrugBot.csproj didn't match, ModVersion is empty or the whole JSON file. -->
+    <Error Condition="$(ModVersion.Length) == 0 Or $(ModVersion.Contains('{'))" Text="Could not read the version from modinfo.json." />
+
+    <ItemGroup>
+      <GrugBotPublishedFile Include="$(GrugBotPublishDir)**/*" />
+      <GrugBotExtraFile Include="$(GrugBotRepoRoot)LICENSE;$(GrugBotRepoRoot)THIRD-PARTY-NOTICES.md" />
+    </ItemGroup>
+
+    <RemoveDir Directories="$(GrugBotStageDir)" />
+    <Copy SourceFiles="@(GrugBotPublishedFile)" DestinationFiles="@(GrugBotPublishedFile->'$(GrugBotStageDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GrugBotExtraFile)" DestinationFolder="$(GrugBotStageDir)" />
+    <Delete Files="@(GrugBotGameAssembly->'$(GrugBotStageDir)%(Identity)')" />
+
+    <!-- Test plan check 1.8, enforced at build time. -->
+    <Error Condition="!Exists('$(GrugBotStageDir)modinfo.json')" Text="modinfo.json is missing from the mod package." />
+    <Error Condition="!Exists('$(GrugBotStageDir)GrugBot.dll')" Text="GrugBot.dll is missing from the mod package." />
+    <Error Condition="!Exists('$(GrugBotStageDir)GrugBot.Core.dll')" Text="GrugBot.Core.dll is missing from the mod package." />
+    <Error Condition="!Exists('$(GrugBotStageDir)THIRD-PARTY-NOTICES.md')" Text="THIRD-PARTY-NOTICES.md is missing from the mod package." />
+    <Error Condition="Exists('$(GrugBotStageDir)%(GrugBotGameAssembly.Identity)')" Text="%(GrugBotGameAssembly.Identity) must not ship in the mod package." />
+
+    <MakeDir Directories="$(GrugBotDistDir)" />
+    <ZipDirectory SourceDirectory="$(GrugBotStageDir)" DestinationFile="$(GrugBotZip)" Overwrite="true" />
+    <Message Importance="high" Text="grug-bot packaged: $(GrugBotZip)" />
+  </Target>
+
+</Project>
