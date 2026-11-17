@@ -1,0 +1,16 @@
+{
+  "type": "code",
+  "modid": "grugbot",
+  "name": "grug-bot",
+  "version": "0.1.0",
+  "description": "Relays chat between the General chat group and a Discord channel.",
+  "authors": [
+    "grug-bot contributors"
+  ],
+  "website": "https://github.com/a-cim/grug-bot",
+  "side": "server",
+  "requiredOnClient": false,
+  "dependencies": {
+    "game": "1.22.0"
+  }
+}
