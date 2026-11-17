@@ -102,7 +102,7 @@ grug-bot/
 - **Presence** (`players: n/max`) updates 5 s after the last join or leave (#26).
 - **Intents:** `Guilds | GuildMessages | MessageContent` only (#41).
 - **Shutdown:** stop posting leaves, enqueue `⛔ Server shutdown`, flush with a ~3 s timeout, then `StopAsync`/`LogoutAsync`. A *crash* produces no shutdown message; that's an accepted limitation of in-process.
-- **Dispose:** unsubscribe everything, unpatch Harmony, and dispose the client.
+- **Dispose:** unsubscribe everything and dispose the client (no Harmony, decision #42).
 
 ## Out of scope (v1)
 
