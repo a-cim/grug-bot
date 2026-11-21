@@ -42,7 +42,7 @@ public static class DiscordToGameText
         RegexOptions.CultureInvariant);
 
     // CRLF counts as one line break.
-    private static readonly Regex LineBreak = new("\r\n|[\n\r\u0085  ]", RegexOptions.CultureInvariant);
+    private static readonly Regex LineBreak = new(@"\r\n|[\n\r\u0085\u2028\u2029]", RegexOptions.CultureInvariant);
 
     /// <summary>
     /// The IDs of the users <paramref name="content"/> mentions, each once, in the order they first appear. The mod

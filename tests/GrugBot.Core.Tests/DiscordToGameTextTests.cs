@@ -227,7 +227,7 @@ public class DiscordToGameTextTests
     [Fact]
     public void Every_kind_of_line_break_becomes_one_space()
     {
-        Assert.Equal("a b c d e f", Build("a\nb\r\nc\rd e f"));
+        Assert.Equal("a b c d e f", Build("a\nb\r\nc\rd\u2028e\u2029f"));
     }
 
     [Fact]
