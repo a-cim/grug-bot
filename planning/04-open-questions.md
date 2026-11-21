@@ -21,7 +21,6 @@ Nothing is blocking. Minor items to settle along the way:
 
 - **Nicknames in General (decision #40).** The owner remembers thebasics nicknames showing in General chat (and on Discord via th3essentials). thebasics 5.9.1's code only applies nicknames in the Proximity chat group, and General shows the player name. Best guess: the server had `UseGeneralChannelAsProximityChat = true` back then, which makes General *become* Proximity, so lines like `Ugg says: "…"` appeared there. **Check in testing** with the live thebasics config.
 
-- The `LICENSE` copyright line currently reads "grug-bot contributors". Change it if you'd rather it name a person or handle.
 
 ## Parked
 

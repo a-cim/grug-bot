@@ -35,7 +35,7 @@ Record each settled decision here: date, the decision, and why. Newest at the bo
 | 29 | 2026-11-16 | **CI builds and tests `GrugBot.Core` only.** | The mod project needs VS DLLs, which can't be redistributed. |
 | 30 | 2026-11-16 | v1 is done when the manual checklist in `planning/06-test-plan.md` passes on a local server + private test Discord server. Written before coding; the Core tests mirror it. | Gives "done" a definition. |
 | 31 | 2026-11-16 | Public examples use made-up names **Grug** and **Ugg**. | Decision #18: no real player names or nicknames in tracked files. |
-| 32 | 2026-11-16 | `LICENSE` keeps "grug-bot contributors". | Valid MIT; no personal name tied to the public repo. |
+| 32 | 2026-11-16 | ~~`LICENSE` keeps "grug-bot contributors".~~ **Superseded by #45.** | |
 | 33 | 2026-11-16 | Solution file is **`GrugBot.slnx`**; LF everywhere (the `*.sln` CRLF rule is dropped). | .NET 10 SDK default; one line-ending rule. |
 | 34 | 2026-11-16 | **Discord shows the name a player is using in game.** If a thebasics nickname disguises them, Discord shows the nickname too, not their account name. Mechanism still to be confirmed against the source. | Owner's choice: a disguise in game shouldn't be undone on Discord. th3essentials already behaved this way. |
 | 35 | 2026-11-16 | Vocabulary: **player name**, **nickname**, **shown name**, **Discord name** (see `CONTEXT.md`). "IGN" is retired. | "IGN" meant both the account name and the name others see. |
@@ -48,3 +48,4 @@ Record each settled decision here: date, the decision, and why. Newest at the bo
 | 42 | 2026-11-16 | **Storms are detected by reading `SystemTemporalStability.StormData` once a second** (fresh each time, never cached), with th3essentials' thresholds and the vanilla lang sentences. **No Harmony** in grug-bot. | `StormData` and its fields are public in 1.22.7. Reading never interferes with Rustwall's own patches on the same method, and sees its changes. |
 | 43 | 2026-11-16 | **Every storm gets a waning line.** If a storm ends (active → over) without its waning line having been posted, e.g. because Rustwall kills cut it short past the 0.02-day window, post `⛈️ The temporal storm seems to be waning` then. | One end-of-storm line per storm, in the familiar wording. |
 | 44 | 2026-11-16 | **grug-bot knows nothing about Rustwall** (no kill-shortening or climate messages). Parked as a future idea. | Keeps grug-bot a generic bridge; reads vanilla storm state only. |
+| 45 | 2026-11-21 | **Copyright holder and mod author is "Kazimiera"** (`LICENSE`, `modinfo.json` authors), replacing "grug-bot contributors". | Owner's choice. |
