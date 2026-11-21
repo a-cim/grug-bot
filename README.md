@@ -2,7 +2,7 @@
 
 A lightweight bridge between **Vintage Story** server chat and **Discord**, in both directions. It's built to do just that, without the extra features of all-in-one server mods. It also works with the [thebasics](https://mods.vintagestory.at/thebasics) proximity chat mod.
 
-> 🚧 **Status: early development.** General chat reaches the Discord chat channel; Discord → Game and system messages are still to come. See `planning/` for the design.
+> 🚧 **Status: early development.** General chat is relayed in both directions, and Discord hears when the server starts and stops. Joins, leaves, deaths and temporal storms are still to come. See `planning/` for the design.
 
 ## Target
 
@@ -28,6 +28,7 @@ A lightweight bridge between **Vintage Story** server chat and **Discord**, in b
 
 1. Drop `grugbot_<version>.zip` into the server's `Mods` folder and start the server once. This creates `ModConfig/grugbot.json`.
 2. Fill in `DiscordToken` and `ChatChannelId`, then restart.
+3. Optional: to post system messages (such as `✅ Server started`) in a channel of their own, set `SystemChannelId` to that channel's ID. `0` keeps them in the chat channel.
 
 ## Building
 
