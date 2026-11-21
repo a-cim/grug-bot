@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using GrugBot.Core.Config;
 using Newtonsoft.Json;
@@ -8,6 +9,42 @@ namespace GrugBot.Core.Tests;
 
 public class GrugBotConfigTests
 {
+    /// <summary>
+    /// The settings of each config version, with sections written as <c>Relay.Joins</c>. Files already at the current
+    /// version are never rewritten (issue #14), so adding, renaming or removing a setting needs a
+    /// <see cref="GrugBotConfig.CurrentVersion"/> bump. When you change the settings, bump it and add the new list here
+    /// under the new number. Don't edit a list that is already recorded.
+    /// </summary>
+    private static readonly Dictionary<int, string[]> SettingsByVersion = new()
+    {
+        [1] = new[]
+        {
+            "ConfigVersion", "DiscordToken", "ChatChannelId", "SystemChannelId", "DiscordNameColor",
+            "IgnoreOtherBots", "IgnoredDiscordUserIds", "EscapeMarkdown",
+            "Relay.DiscordToGame", "Relay.Joins", "Relay.Leaves", "Relay.Deaths", "Relay.ServerStartStop",
+            "Relay.TemporalStorms",
+        },
+    };
+
+    [Fact]
+    public void Changing_the_settings_needs_a_config_version_bump()
+    {
+        string[] settings = JObject.FromObject(new GrugBotConfig()).Properties()
+            .SelectMany(p => p.Value is JObject section
+                ? section.Properties().Select(s => p.Name + "." + s.Name)
+                : new[] { p.Name })
+            .ToArray();
+
+        Assert.True(
+            SettingsByVersion.TryGetValue(GrugBotConfig.CurrentVersion, out string[]? recorded),
+            "No settings are recorded for config version " + GrugBotConfig.CurrentVersion + ". Add its list to SettingsByVersion.");
+        Assert.True(
+            recorded!.OrderBy(name => name).SequenceEqual(settings.OrderBy(name => name)),
+            "The settings differ from the ones recorded for config version " + GrugBotConfig.CurrentVersion
+            + ". Bump GrugBotConfig.CurrentVersion and record the new list under the new number."
+            + " Settings now: " + string.Join(", ", settings));
+    }
+
     [Fact]
     public void Defaults_match_the_architecture_doc()
     {

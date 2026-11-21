@@ -90,6 +90,8 @@ grug-bot/
 }
 ```
 
+**Bump `ConfigVersion` whenever a setting is added, renamed or removed.** On start, a file with a lower version is saved back with the new settings at their defaults and every existing value kept; a file at the current version is never rewritten (issue #14).
+
 ## Lifecycle
 
 - **Token:** `GRUGBOT_DISCORD_TOKEN` environment variable first, else `DiscordToken` from the config file (#27). Log which, never the value.
