@@ -1,0 +1,9 @@
+<Project>
+  <!-- Settings shared by every project in the repo. Each project still names its own TargetFramework. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    VS-free library: formatting, escaping, batching and config logic live here so they can be
+    unit-tested without a game server (ADR 0001). Never add a Vintage Story reference to this project.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>GrugBot.Core</RootNamespace>
+    <AssemblyName>GrugBot.Core</AssemblyName>
+  </PropertyGroup>
+
+</Project>

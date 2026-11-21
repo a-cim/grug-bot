@@ -48,4 +48,5 @@ Logs/
 *.log
 
 # --- Packaged mod zips ---
+dist/
 *.zip

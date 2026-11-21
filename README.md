@@ -2,7 +2,7 @@
 
 A lightweight bridge between **Vintage Story** server chat and **Discord**, in both directions. It's built to do just that, without the extra features of all-in-one server mods. It also works with the [thebasics](https://mods.vintagestory.at/thebasics) proximity chat mod.
 
-> 🚧 **Status: planning.** No code yet. See `planning/` for the design work in progress.
+> 🚧 **Status: early development.** The mod loads and writes its config, but doesn't connect to Discord yet. See `planning/` for the design.
 
 ## Target
 
@@ -28,6 +28,21 @@ A lightweight bridge between **Vintage Story** server chat and **Discord**, in b
 
 1. Drop `grugbot_<version>.zip` into the server's `Mods` folder and start the server once. This creates `ModConfig/grugbot.json`.
 2. Fill in `DiscordToken` and `ChatChannelId`, then restart.
+
+## Building
+
+You need the .NET 10 SDK and a Vintage Story 1.22.x install. The game's DLLs can't be redistributed, so point the `VINTAGE_STORY` environment variable at the install folder (the one containing `VintagestoryAPI.dll`):
+
+```sh
+# Windows (new terminals pick it up):  setx VINTAGE_STORY "C:\path\to\Vintagestory"
+export VINTAGE_STORY=/path/to/vintagestory
+
+dotnet build GrugBot.slnx
+dotnet test tests/GrugBot.Core.Tests            # needs no Vintage Story install
+dotnet publish src/GrugBot/GrugBot.csproj -c Release   # writes dist/grugbot_<version>.zip
+```
+
+The version comes from `src/GrugBot/modinfo.json`.
 
 ## Credits
 

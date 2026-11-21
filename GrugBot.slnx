@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GrugBot.Core/GrugBot.Core.csproj" />
+    <Project Path="src/GrugBot/GrugBot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GrugBot.Core.Tests/GrugBot.Core.Tests.csproj" />
+  </Folder>
+</Solution>
