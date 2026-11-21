@@ -1,6 +1,8 @@
 using System;
 using GrugBot.Core.Config;
+using Newtonsoft.Json.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 
 namespace GrugBot;
@@ -58,7 +60,7 @@ public sealed class GrugBotModSystem : ModSystem
     }
 
     /// <summary>
-    /// Loads the config, or writes one with defaults if the file doesn't exist yet.
+    /// Loads the config (saving an older file back upgraded), or writes one with defaults if the file doesn't exist yet.
     /// Returns <c>null</c> (after logging why) if the existing file can't be read; that file is left untouched.
     /// </summary>
     private static GrugBotConfig? LoadOrCreateConfig(ICoreServerAPI api, ILogger log)
@@ -81,6 +83,7 @@ public sealed class GrugBotModSystem : ModSystem
         if (config is not null)
         {
             config.FillMissingSections();
+            UpgradeOlderConfigFile(api, log);
             return config;
         }
 
@@ -96,5 +99,43 @@ public sealed class GrugBotModSystem : ModSystem
         }
 
         return config;
+    }
+
+    /// <summary>
+    /// Saves back a config file written by an older grug-bot with the new settings added and every existing value kept,
+    /// or warns once about a file from a newer grug-bot, which is left untouched (issue #14). A file at the current
+    /// version is not rewritten. <see cref="ConfigUpgrade"/> makes the decision and builds the file. The config already
+    /// loaded has the same values either way, so a failure here is logged and the mod carries on.
+    /// </summary>
+    private static void UpgradeOlderConfigFile(ICoreServerAPI api, ILogger log)
+    {
+        try
+        {
+            // The raw JSON rather than GrugBotConfig, so values are copied as written and unknown fields are kept.
+            JsonObject? file = api.LoadModConfig(GrugBotConfig.FileName);
+            if (file is null)
+            {
+                return;
+            }
+
+            ConfigUpgradeResult upgrade = ConfigUpgrade.Decide(file.ToString());
+            if (upgrade.UpgradedJson is not null)
+            {
+                api.StoreModConfig(new JsonObject(JToken.Parse(upgrade.UpgradedJson)), GrugBotConfig.FileName);
+                // Describe names the versions only, never the token, and has no curly braces.
+                log.Notification(upgrade.Describe());
+            }
+            else if (upgrade.Action == ConfigUpgradeAction.NewerThanMod)
+            {
+                log.Warning(upgrade.Describe());
+            }
+        }
+        catch (Exception e)
+        {
+            log.Error(
+                "grug-bot could not upgrade {0}; it carries on with the settings it read. Cause: {1}",
+                GrugBotConfig.DisplayPath,
+                e);
+        }
     }
 }
