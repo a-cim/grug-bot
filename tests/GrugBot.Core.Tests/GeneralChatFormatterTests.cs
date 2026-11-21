@@ -1,3 +1,4 @@
+using System;
 using GrugBot.Core.Formatting;
 using Xunit;
 
@@ -32,6 +33,9 @@ public class GeneralChatFormatterTests
         Assert.Equal("**Grug:** hi there", line);
     }
 
+    // Assertions on mention text are ordinal: culture-aware comparison ignores the zero-width space,
+    // so "@\u200Beveryone" would count as containing "@everyone".
+
     [Fact]
     public void Everyone_and_here_cannot_ping()
     {
@@ -39,8 +43,8 @@ public class GeneralChatFormatterTests
         string? line = GeneralChatFormatter.Format("Grug", Said("Grug", "@everyone hi @here"), escapeMarkdown: false);
 
         Assert.NotNull(line);
-        Assert.DoesNotContain("@everyone", line);
-        Assert.DoesNotContain("@here", line);
+        Assert.DoesNotContain("@everyone", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("@here", line, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -50,8 +54,8 @@ public class GeneralChatFormatterTests
         string? line = GeneralChatFormatter.Format("Grug", Said("Grug", "&lt;@&amp;123&gt; hi"), escapeMarkdown: false);
 
         Assert.NotNull(line);
-        Assert.DoesNotContain("<@&123>", line);
-        Assert.Contains("@&123> hi", line);
+        Assert.DoesNotContain("<@&123>", line, StringComparison.Ordinal);
+        Assert.Contains("@&123> hi", line, StringComparison.Ordinal);
     }
 
     [Fact]

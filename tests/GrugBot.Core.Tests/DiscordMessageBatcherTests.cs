@@ -88,8 +88,8 @@ public class DiscordMessageBatcherTests
         List<string> messages = DiscordMessageBatcher.Batch(new[] { "**Ugg:** before", longLine, "**Ugg:** after" });
 
         Assert.All(messages, m => Assert.True(m.Length <= DiscordMessageBatcher.MaxMessageLength));
-        Assert.StartsWith("**Ugg:** before", messages[0]);
-        Assert.EndsWith("**Ugg:** after", messages[^1]);
+        Assert.StartsWith("**Ugg:** before", messages[0], StringComparison.Ordinal);
+        Assert.EndsWith("**Ugg:** after", messages[^1], StringComparison.Ordinal);
         Assert.Equal(
             ("**Ugg:** before " + longLine + " **Ugg:** after").Split(' '),
             string.Join(" ", messages).Replace('\n', ' ').Split(' '));
