@@ -29,4 +29,17 @@ public class DiscordSendQueueTests
         queue.Enqueue("**Grug:** two");
         Assert.Equal(new[] { "**Grug:** two" }, queue.DrainMessages());
     }
+
+    [Fact]
+    public void Clearing_throws_away_everything_queued()
+    {
+        var queue = new DiscordSendQueue();
+        queue.Enqueue("**Grug:** one");
+        queue.Enqueue("**Ugg:** two");
+
+        queue.Clear();
+
+        Assert.True(queue.IsEmpty);
+        Assert.Empty(queue.DrainMessages());
+    }
 }

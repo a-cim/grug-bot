@@ -29,12 +29,17 @@ public sealed class DiscordConnection : IDisposable
     /// <summary>Exactly these intents and no others (decision #41). MessageContent is for Discord → Game.</summary>
     private const GatewayIntents Intents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent;
 
+    /// <summary>
+    /// Gateway close code for "disallowed intents": a privileged intent (for us, Message Content) isn't
+    /// turned on in the Developer Portal. Discord.Net stops reconnecting after it.
+    /// </summary>
+    private const int DisallowedIntentsCloseCode = 4014;
+
     /// <summary>How often queued lines are posted. Lines queued in between are joined (05-message-format § Batching).</summary>
     private static readonly TimeSpan SendInterval = TimeSpan.FromSeconds(1);
 
     private readonly ILogger _log;
     private readonly ResolvedToken _token;
-    private readonly string _tokenValue;
     private readonly ulong _chatChannelId;
     private readonly DiscordSocketClient _client;
     private readonly DiscordSendQueue _chatQueue = new();
@@ -43,8 +48,9 @@ public sealed class DiscordConnection : IDisposable
     // Written by Ready (a Discord.Net thread), read by the send loop.
     private volatile IMessageChannel? _chatChannel;
 
-    // Set when Discord rejects the token: nothing will ever be sent, so stop queueing.
-    private volatile bool _gaveUp;
+    // 1 once Discord has refused us for good (rejected token, Message Content intent off): nothing will
+    // ever be sent, so stop queueing. Read on the game thread.
+    private int _gaveUp;
 
     private int _readyCount;
     private int _disposed;
@@ -58,7 +64,6 @@ public sealed class DiscordConnection : IDisposable
 
         _log = log;
         _token = token;
-        _tokenValue = token.Value;
         _chatChannelId = chatChannelId;
 
         _client = new DiscordSocketClient(new DiscordSocketConfig
@@ -87,7 +92,7 @@ public sealed class DiscordConnection : IDisposable
     /// </summary>
     public void EnqueueChat(string line)
     {
-        if (_gaveUp || Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _gaveUp) != 0 || Volatile.Read(ref _disposed) != 0)
         {
             return;
         }
@@ -111,7 +116,8 @@ public sealed class DiscordConnection : IDisposable
         _client.Ready -= OnReadyAsync;
         _client.Log -= OnDiscordLogAsync;
 
-        // DiscordSocketClient.Dispose waits for the client to stop, so it runs on a background task.
+        // LogoutAsync waits for Discord.Net's state lock, so stopping, logging out and disposing all happen
+        // on a background task and Dispose returns at once.
         DiscordSocketClient client = _client;
         _ = Task.Run(async () =>
         {
@@ -132,9 +138,16 @@ public sealed class DiscordConnection : IDisposable
     }
 
     /// <summary>
-    /// Logs in and starts the gateway. If Discord can't be reached, tries again later, so the bot connects
-    /// once the network returns (test plan 1.5). After that, Discord.Net reconnects by itself.
+    /// Checks the token, then starts the gateway. If Discord can't be reached, tries again later, so the bot
+    /// connects once the network returns (test plan 1.5). After that, Discord.Net reconnects by itself.
     /// </summary>
+    /// <remarks>
+    /// <c>LoginAsync</c> only stores the token, and <c>StartAsync</c> only starts Discord.Net's connect loop,
+    /// which retries a rejected token forever. So a REST call in between is what checks the token: a rejected
+    /// one throws <see cref="HttpException"/> 401, and an unreachable Discord throws (for example)
+    /// <c>HttpRequestException</c>, which Discord.Net doesn't retry. Calling <c>LoginAsync</c> again is safe; it
+    /// logs out first.
+    /// </remarks>
     private async Task LogInAsync(CancellationToken stopping)
     {
         int failures = 0;
@@ -142,18 +155,15 @@ public sealed class DiscordConnection : IDisposable
         {
             try
             {
-                await _client.LoginAsync(TokenType.Bot, _tokenValue);
+                await _client.LoginAsync(TokenType.Bot, _token.Value!);
+                await _client.GetApplicationInfoAsync(new RequestOptions { CancelToken = stopping });
                 await _client.StartAsync();
                 _log.Debug("grug-bot logged in to Discord and is connecting to the gateway.");
                 return;
             }
             catch (Exception e) when (IsRejectedToken(e))
             {
-                _gaveUp = true;
-                _log.Error(
-                    "Discord rejected the bot token from {0}, so the relay is off. Check the token and restart the server. Cause: {1}",
-                    _token.DescribeSource(),
-                    Redact(e.Message));
+                GiveUpOnRejectedToken(e);
                 return;
             }
             catch (Exception e) when (!stopping.IsCancellationRequested)
@@ -187,9 +197,59 @@ public sealed class DiscordConnection : IDisposable
         }
     }
 
-    /// <summary>A token Discord refuses (or one that isn't even shaped like a token) won't work on a retry.</summary>
-    private static bool IsRejectedToken(Exception e) =>
-        e is HttpException { HttpCode: HttpStatusCode.Unauthorized } || e is ArgumentException;
+    /// <summary>A token Discord refuses won't work on a retry. Discord answers 401 for a wrong or reset token.</summary>
+    private static bool IsRejectedToken(Exception? e) => e is HttpException { HttpCode: HttpStatusCode.Unauthorized };
+
+    /// <summary>The gateway close code Discord sent, if <paramref name="e"/> or an inner exception carries one.</summary>
+    private static int? GatewayCloseCode(Exception? e)
+    {
+        for (Exception? current = e; current is not null; current = current.InnerException)
+        {
+            if (current is WebSocketClosedException closed)
+            {
+                return closed.CloseCode;
+            }
+        }
+
+        return null;
+    }
+
+    private void GiveUpOnRejectedToken(Exception e) => GiveUp(
+        "Discord rejected the bot token from {0}, so the relay is off. Check the token (it may have been reset in the Developer Portal) and restart the server. Cause: {1}",
+        _token.DescribeSource(),
+        Redact(e.Message));
+
+    /// <summary>
+    /// Stops for good after Discord has refused us: logs one error, stops queueing, drops what's queued
+    /// and stops the client (on a background task) so Discord.Net doesn't keep retrying. Only the first
+    /// call does anything.
+    /// </summary>
+    private void GiveUp(string format, params object[] args)
+    {
+        if (Interlocked.Exchange(ref _gaveUp, 1) != 0)
+        {
+            return;
+        }
+
+        _log.Error(format, args);
+        _chatQueue.Clear();
+
+        if (Volatile.Read(ref _disposed) == 0)
+        {
+            DiscordSocketClient client = _client;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await client.StopAsync();
+                }
+                catch (Exception)
+                {
+                    // Already stopping or disposed; nothing more to do.
+                }
+            });
+        }
+    }
 
     /// <summary>
     /// Runs after every (re)connect that sends Ready. It only looks up the chat channel; it subscribes
@@ -272,6 +332,12 @@ public sealed class DiscordConnection : IDisposable
                 // and retries; a message that still fails is dropped, with no retries of our own (decision #26).
                 await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
             }
+            catch (Exception e) when (IsRejectedToken(e))
+            {
+                // The token was reset while the server runs.
+                GiveUpOnRejectedToken(e);
+                return;
+            }
             catch (Exception e)
             {
                 _log.Warning("grug-bot could not post a message to Discord, so it was dropped. Cause: {0}", Redact(e.Message));
@@ -284,6 +350,22 @@ public sealed class DiscordConnection : IDisposable
     {
         try
         {
+            // Discord.Net's connect loop reports these and would retry the first forever and stop on the
+            // second with a cryptic error, so they get one clear line of our own instead.
+            if (IsRejectedToken(message.Exception))
+            {
+                // A token reset while the server runs: the gateway gets a 401 when it reconnects.
+                GiveUpOnRejectedToken(message.Exception!);
+                return Task.CompletedTask;
+            }
+
+            if (GatewayCloseCode(message.Exception) == DisallowedIntentsCloseCode)
+            {
+                GiveUp(
+                    "Discord refused the connection because the bot's Message Content intent is off, so the relay is off. In the Discord Developer Portal, open the bot's application, go to Bot, turn on \"Message Content Intent\" under Privileged Gateway Intents, then restart the server.");
+                return Task.CompletedTask;
+            }
+
             string text = Redact(message.ToString(prependTimestamp: false));
             switch (message.Severity)
             {
@@ -315,5 +397,5 @@ public sealed class DiscordConnection : IDisposable
         e is GatewayReconnectException or WebSocketException or TaskCanceledException
         || e?.InnerException is WebSocketException;
 
-    private string Redact(string text) => SecretRedactor.Redact(text, _tokenValue);
+    private string Redact(string text) => SecretRedactor.Redact(text, _token.Value);
 }

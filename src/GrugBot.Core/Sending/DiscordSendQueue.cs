@@ -19,6 +19,9 @@ public sealed class DiscordSendQueue
 
     public void Enqueue(string line) => _lines.Enqueue(line);
 
+    /// <summary>Throws away everything queued, for when nothing will ever be sent (a rejected token, say).</summary>
+    public void Clear() => _lines.Clear();
+
     /// <summary>
     /// Takes every line queued so far and returns them joined into Discord messages, in order
     /// (see <see cref="DiscordMessageBatcher.Batch"/>). Lines queued while this runs wait for the next drain.
