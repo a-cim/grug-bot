@@ -10,6 +10,7 @@ Use made-up names in any notes or screenshots kept in the repo (decision #31).
 - [ ] Token set with `setx GRUGBOT_DISCORD_TOKEN …` (not in the config file).
 - [ ] Two game clients (or one client plus server console) so a second player can join and leave.
 - [ ] Note the server's `MaxClients`.
+- [ ] **After replacing the mod zip, restart the whole game** (or the dedicated server). In singleplayer, reloading the world keeps the previously loaded grug-bot DLL in memory, so new code isn't picked up.
 
 ## 1. Startup and config
 
