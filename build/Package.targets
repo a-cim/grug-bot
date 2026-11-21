@@ -5,7 +5,7 @@
 
     `dotnet publish src/GrugBot/GrugBot.csproj -c Release` runs this after Publish and writes
     dist/grugbot_<version>.zip, with the version taken from modinfo.json. The zip holds the publish
-    output (GrugBot.dll, GrugBot.Core.dll, modinfo.json, and later the Discord.Net DLLs) plus LICENSE and
+    output (GrugBot.dll, GrugBot.Core.dll, modinfo.json, the Discord.Net DLLs and their dependencies) plus LICENSE and
     THIRD-PARTY-NOTICES.md (decision #15). Game assemblies are left out wherever they appear in the publish
     folder, even if a package dependency drags a copy in, as Discord.Net does with Newtonsoft.Json (gotcha #3).
   -->
@@ -21,6 +21,11 @@
       These are plain names, not paths: they're matched by file name (Filename + Extension) below.
     -->
     <GrugBotGameAssemblyName Include="VintagestoryAPI.dll;VintagestoryLib.dll;VSEssentials.dll;VSSurvivalMod.dll;VSCreativeMod.dll;Newtonsoft.Json.dll;0Harmony.dll;protobuf-net.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Discord.Net assemblies that must be in the mod zip (the packaging check below fails without them). -->
+    <GrugBotRequiredDiscordAssembly Include="Discord.Net.Core.dll;Discord.Net.Rest.dll;Discord.Net.WebSocket.dll" />
   </ItemGroup>
 
   <!--
@@ -72,6 +77,8 @@
     <Error Condition="!Exists('$(GrugBotStageDir)modinfo.json')" Text="modinfo.json is missing from the mod package." />
     <Error Condition="!Exists('$(GrugBotStageDir)GrugBot.dll')" Text="GrugBot.dll is missing from the mod package." />
     <Error Condition="!Exists('$(GrugBotStageDir)GrugBot.Core.dll')" Text="GrugBot.Core.dll is missing from the mod package." />
+    <!-- The game doesn't provide Discord.Net, so the mod can't connect without these. -->
+    <Error Condition="!Exists('$(GrugBotStageDir)%(GrugBotRequiredDiscordAssembly.Identity)')" Text="%(GrugBotRequiredDiscordAssembly.Identity) is missing from the mod package." />
     <Error Condition="!Exists('$(GrugBotStageDir)THIRD-PARTY-NOTICES.md')" Text="THIRD-PARTY-NOTICES.md is missing from the mod package." />
 
     <MakeDir Directories="$(GrugBotDistDir)" />
