@@ -35,6 +35,19 @@ public sealed class DiscordConnection : IDisposable
     /// </summary>
     private const int DisallowedIntentsCloseCode = 4014;
 
+    /// <summary>
+    /// Gateway close code for "authentication failed" (Discord's gateway docs: don't reconnect): the token
+    /// is wrong or was reset while connected. Discord.Net 3.18 has no case for it and reconnects forever.
+    /// </summary>
+    private const int AuthenticationFailedCloseCode = 4004;
+
+    /// <summary>
+    /// How long one token check may take. Discord.Net's HTTP client has no timeout of its own (the .NET
+    /// default is 100 s) and <c>RequestOptions.Timeout</c> doesn't cover the HTTP call, so with the network
+    /// silently blocked the first warning would otherwise take that long (test plan 1.5).
+    /// </summary>
+    private static readonly TimeSpan LoginCheckTimeout = TimeSpan.FromSeconds(20);
+
     /// <summary>How often queued lines are posted. Lines queued in between are joined (05-message-format § Batching).</summary>
     private static readonly TimeSpan SendInterval = TimeSpan.FromSeconds(1);
 
@@ -116,8 +129,9 @@ public sealed class DiscordConnection : IDisposable
         _client.Ready -= OnReadyAsync;
         _client.Log -= OnDiscordLogAsync;
 
-        // LogoutAsync waits for Discord.Net's state lock, so stopping, logging out and disposing all happen
-        // on a background task and Dispose returns at once.
+        // LogoutAsync waits on the client's own state locks, and can wait there behind a gateway connect that
+        // is still in progress. So stopping, logging out and disposing all happen on a background task, and
+        // Dispose returns at once.
         DiscordSocketClient client = _client;
         _ = Task.Run(async () =>
         {
@@ -156,7 +170,12 @@ public sealed class DiscordConnection : IDisposable
             try
             {
                 await _client.LoginAsync(TokenType.Bot, _token.Value!);
-                await _client.GetApplicationInfoAsync(new RequestOptions { CancelToken = stopping });
+                using (CancellationTokenSource attempt = CancellationTokenSource.CreateLinkedTokenSource(stopping))
+                {
+                    attempt.CancelAfter(LoginCheckTimeout);
+                    await _client.GetApplicationInfoAsync(new RequestOptions { CancelToken = attempt.Token });
+                }
+
                 await _client.StartAsync();
                 _log.Debug("grug-bot logged in to Discord and is connecting to the gateway.");
                 return;
@@ -168,16 +187,21 @@ public sealed class DiscordConnection : IDisposable
             }
             catch (Exception e) when (!stopping.IsCancellationRequested)
             {
+                // Not shutting down, so a cancellation here is our own LoginCheckTimeout: a network failure
+                // like any other, retried on the same schedule.
                 failures++;
                 TimeSpan delay = LoginRetryDelay.After(failures);
+                string cause = e is OperationCanceledException
+                    ? "no answer within " + (int)LoginCheckTimeout.TotalSeconds + " seconds"
+                    : Redact(e.Message);
                 const string RetryMessage = "grug-bot could not reach Discord and will try again in {0} seconds. The server carries on normally. Cause: {1}";
                 if (failures == 1)
                 {
-                    _log.Warning(RetryMessage, (int)delay.TotalSeconds, Redact(e.Message));
+                    _log.Warning(RetryMessage, (int)delay.TotalSeconds, cause);
                 }
                 else
                 {
-                    _log.Debug(RetryMessage, (int)delay.TotalSeconds, Redact(e.Message));
+                    _log.Debug(RetryMessage, (int)delay.TotalSeconds, cause);
                 }
 
                 try
@@ -200,24 +224,28 @@ public sealed class DiscordConnection : IDisposable
     /// <summary>A token Discord refuses won't work on a retry. Discord answers 401 for a wrong or reset token.</summary>
     private static bool IsRejectedToken(Exception? e) => e is HttpException { HttpCode: HttpStatusCode.Unauthorized };
 
-    /// <summary>The gateway close code Discord sent, if <paramref name="e"/> or an inner exception carries one.</summary>
-    private static int? GatewayCloseCode(Exception? e)
+    /// <summary>
+    /// The gateway close Discord sent, if <paramref name="e"/> or an inner exception is one. Discord.Net wraps
+    /// it in a <see cref="WebSocketException"/> before logging it.
+    /// </summary>
+    private static WebSocketClosedException? FindGatewayClose(Exception? e)
     {
         for (Exception? current = e; current is not null; current = current.InnerException)
         {
             if (current is WebSocketClosedException closed)
             {
-                return closed.CloseCode;
+                return closed;
             }
         }
 
         return null;
     }
 
+    /// <summary>The cause names the close code and Discord's reason when there is one, not just the wrapper's message.</summary>
     private void GiveUpOnRejectedToken(Exception e) => GiveUp(
         "Discord rejected the bot token from {0}, so the relay is off. Check the token (it may have been reset in the Developer Portal) and restart the server. Cause: {1}",
         _token.DescribeSource(),
-        Redact(e.Message));
+        Redact((FindGatewayClose(e) ?? e).Message));
 
     /// <summary>
     /// Stops for good after Discord has refused us: logs one error, stops queueing, drops what's queued
@@ -350,16 +378,19 @@ public sealed class DiscordConnection : IDisposable
     {
         try
         {
-            // Discord.Net's connect loop reports these and would retry the first forever and stop on the
-            // second with a cryptic error, so they get one clear line of our own instead.
-            if (IsRejectedToken(message.Exception))
+            // Discord.Net's connect loop would retry a rejected token (401 or close 4004) forever and stops on
+            // 4014 with a cryptic error, so these get one clear line of our own instead. They're checked before
+            // the reconnect-noise filter below, which would demote the 4004 warning to a debug line and leave
+            // the relay silently dead.
+            int? closeCode = FindGatewayClose(message.Exception)?.CloseCode;
+            if (IsRejectedToken(message.Exception) || closeCode == AuthenticationFailedCloseCode)
             {
-                // A token reset while the server runs: the gateway gets a 401 when it reconnects.
+                // A token reset while the server runs: Discord closes the gateway with 4004 (or a REST call gets 401).
                 GiveUpOnRejectedToken(message.Exception!);
                 return Task.CompletedTask;
             }
 
-            if (GatewayCloseCode(message.Exception) == DisallowedIntentsCloseCode)
+            if (closeCode == DisallowedIntentsCloseCode)
             {
                 GiveUp(
                     "Discord refused the connection because the bot's Message Content intent is off, so the relay is off. In the Discord Developer Portal, open the bot's application, go to Bot, turn on \"Message Content Intent\" under Privileged Gateway Intents, then restart the server.");
