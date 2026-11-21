@@ -43,6 +43,16 @@
     </Reference>
   </ItemGroup>
 
+  <!--
+    Discord.Net ships inside the mod zip (ADR 0001). 3.18.0 is the version th3essentials uses on VS 1.22 / .NET 10.
+    Discord.Net.WebSocket brings Discord.Net.Core and Discord.Net.Rest with it; `dotnet publish` copies them and
+    their dependencies next to GrugBot.dll, and build/Package.targets leaves out the ones the game provides
+    (Newtonsoft.Json).
+  -->
+  <ItemGroup>
+    <PackageReference Include="Discord.Net.WebSocket" Version="3.18.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../GrugBot.Core/GrugBot.Core.csproj" />
   </ItemGroup>
