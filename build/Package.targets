@@ -13,9 +13,25 @@
   <PropertyGroup>
     <!-- Evaluated here, outside the target, so MSBuildThisFileDirectory is this file's folder (build/). -->
     <GrugBotRepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</GrugBotRepoRoot>
-    <!-- File names of assemblies the game already loads. They must never ship in the mod zip, in any folder. -->
-    <GrugBotGameAssemblies>VintagestoryAPI.dll;VintagestoryLib.dll;VSEssentials.dll;VSSurvivalMod.dll;VSCreativeMod.dll;Newtonsoft.Json.dll;0Harmony.dll;protobuf-net.dll</GrugBotGameAssemblies>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      File names of assemblies the game already loads. They must never ship in the mod zip, in any folder.
+      These are plain names, not paths: they're matched by file name (Filename + Extension) below.
+    -->
+    <GrugBotGameAssemblyName Include="VintagestoryAPI.dll;VintagestoryLib.dll;VSEssentials.dll;VSSurvivalMod.dll;VSCreativeMod.dll;Newtonsoft.Json.dll;0Harmony.dll;protobuf-net.dll" />
+  </ItemGroup>
+
+  <!--
+    How game assemblies are found (used twice below): a batched ItemGroup that references two item lists,
+    the files and GrugBotGameAssemblyName, plus unqualified %(Filename)%(Extension). MSBuild then splits both
+    lists into buckets by file name, so in each bucket @(GrugBotGameAssemblyName) is only non-empty when the
+    files in that bucket have a game assembly's name, whatever folder they're in. The %(...) part of the
+    condition is always true; it is only there to make MSBuild batch by file name.
+    Wildcards must stay literal in Include: wildcards produced by a property function are escaped and never
+    expand, which is what broke the first version of this check.
+  -->
 
   <Target Name="GrugBotPackage" AfterTargets="Publish">
     <PropertyGroup>
@@ -23,30 +39,34 @@
       <GrugBotDistDir>$([MSBuild]::NormalizeDirectory('$(GrugBotRepoRoot)', 'dist'))</GrugBotDistDir>
       <GrugBotZip>$(GrugBotDistDir)grugbot_$(ModVersion).zip</GrugBotZip>
       <GrugBotPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))</GrugBotPublishDir>
-      <!-- "<dir>**/Name.dll" for each game assembly: matches it at the root and in every subfolder. -->
-      <GrugBotGameAssembliesInPublish>$(GrugBotPublishDir)**/$(GrugBotGameAssemblies.Replace(';', ';$(GrugBotPublishDir)**/'))</GrugBotGameAssembliesInPublish>
-      <GrugBotGameAssembliesInStage>$(GrugBotStageDir)**/$(GrugBotGameAssemblies.Replace(';', ';$(GrugBotStageDir)**/'))</GrugBotGameAssembliesInStage>
     </PropertyGroup>
 
     <!-- Normally caught earlier by GrugBotCheckBuildInputs; repeated here for a publish that skips the build. -->
     <Error Condition="'$(GrugBotModVersionValid)' != 'true'" Text="Could not read a valid version from src/GrugBot/modinfo.json." />
 
+    <!-- Everything published, minus game assemblies at any depth. -->
     <ItemGroup>
-      <GrugBotPublishedFile Include="$(GrugBotPublishDir)**/*" Exclude="$(GrugBotGameAssembliesInPublish)" />
+      <GrugBotPublishedFile Include="$(GrugBotPublishDir)**/*" />
+      <GrugBotPublishedGameAssembly Include="@(GrugBotPublishedFile)"
+                                    Condition="'@(GrugBotGameAssemblyName)' != '' And '%(Filename)%(Extension)' != ''" />
+      <GrugBotFileToStage Include="@(GrugBotPublishedFile)" Exclude="@(GrugBotPublishedGameAssembly)" />
       <GrugBotExtraFile Include="$(GrugBotRepoRoot)LICENSE;$(GrugBotRepoRoot)THIRD-PARTY-NOTICES.md" />
     </ItemGroup>
+    <Message Importance="high" Condition="'@(GrugBotPublishedGameAssembly)' != ''"
+             Text="Left out of the mod package (the game provides them): @(GrugBotPublishedGameAssembly->'%(Filename)%(Extension)')" />
 
     <RemoveDir Directories="$(GrugBotStageDir)" />
-    <Copy SourceFiles="@(GrugBotPublishedFile)" DestinationFiles="@(GrugBotPublishedFile->'$(GrugBotStageDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GrugBotFileToStage)" DestinationFiles="@(GrugBotFileToStage->'$(GrugBotStageDir)%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GrugBotExtraFile)" DestinationFolder="$(GrugBotStageDir)" />
 
     <!--
-      Test plan check 1.8, run on the staged tree: exactly what gets zipped. This is a separate glob from the
-      Exclude above, so a mistake there, or a later copy step that brings in a game DLL, fails the build
-      instead of shipping it.
+      Test plan check 1.8, run on the real files in the staged tree: exactly what gets zipped. A mistake in
+      the filtering above, or a later copy step that brings in a game DLL, fails the build instead of shipping it.
     -->
     <ItemGroup>
-      <GrugBotStagedGameAssembly Include="$(GrugBotGameAssembliesInStage)" />
+      <GrugBotStagedFile Include="$(GrugBotStageDir)**/*" />
+      <GrugBotStagedGameAssembly Include="@(GrugBotStagedFile)"
+                                 Condition="'@(GrugBotGameAssemblyName)' != '' And '%(Filename)%(Extension)' != ''" />
     </ItemGroup>
     <Error Condition="'@(GrugBotStagedGameAssembly)' != ''" Text="Game assemblies must not ship in the mod package: @(GrugBotStagedGameAssembly)" />
     <Error Condition="!Exists('$(GrugBotStageDir)modinfo.json')" Text="modinfo.json is missing from the mod package." />
