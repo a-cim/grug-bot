@@ -112,13 +112,14 @@ public sealed class GrugBotModSystem : ModSystem
         try
         {
             // The raw JSON rather than GrugBotConfig, so values are copied as written and unknown fields are kept.
-            JsonObject? file = api.LoadModConfig(GrugBotConfig.FileName);
-            if (file is null)
+            // JsonObject.ToString() is declared nullable; with no file or no text there is nothing to upgrade.
+            string? fileJson = api.LoadModConfig(GrugBotConfig.FileName)?.ToString();
+            if (fileJson is null)
             {
                 return;
             }
 
-            ConfigUpgradeResult upgrade = ConfigUpgrade.Decide(file.ToString());
+            ConfigUpgradeResult upgrade = ConfigUpgrade.Decide(fileJson);
             if (upgrade.UpgradedJson is not null)
             {
                 api.StoreModConfig(new JsonObject(JToken.Parse(upgrade.UpgradedJson)), GrugBotConfig.FileName);
