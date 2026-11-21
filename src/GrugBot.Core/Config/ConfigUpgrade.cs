@@ -157,9 +157,10 @@ public static class ConfigUpgrade
 
     /// <summary>
     /// The value of setting <paramref name="name"/>, matched ignoring case. If the file spells it more than once
-    /// (say <c>ChatChannelId</c> and <c>chatChannelId</c>), the last one wins, as it does when Newtonsoft.Json reads
-    /// the file. Every spelling found is added to <paramref name="matched"/>, so none of them is copied again as an
-    /// unknown field.
+    /// (say <c>ChatChannelId</c> and <c>chatChannelId</c>), the last one is used whole. For a single value that matches
+    /// how Newtonsoft.Json reads the file; for a section or list it doesn't, because Newtonsoft fills one object (or
+    /// list) from every spelling. Files the game writes never do this. Every spelling found is added to
+    /// <paramref name="matched"/>, so none of them is copied again as an unknown field.
     /// </summary>
     private static JsonNode? FindSetting(JsonObject file, string name, HashSet<string>? matched)
     {

@@ -15,7 +15,11 @@ public sealed class GrugBotConfig
     /// <summary>How the file is named in log lines, so server owners know where to look.</summary>
     public const string DisplayPath = "ModConfig/" + FileName;
 
-    /// <summary>The config format this build writes. Bump it when a change needs a migration (decision #28).</summary>
+    /// <summary>
+    /// The config format this build writes (decision #28). Bump it whenever a setting is added, renamed or removed:
+    /// files already at the current version are never rewritten, so without a bump existing files never get the change
+    /// (issue #14). A test in <c>GrugBotConfigTests</c> fails until you do.
+    /// </summary>
     public const int CurrentVersion = 1;
 
     public const string DefaultDiscordNameColor = "#7289DA";
