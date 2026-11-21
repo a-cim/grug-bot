@@ -103,9 +103,9 @@ public sealed class GrugBotModSystem : ModSystem
 
     /// <summary>
     /// Saves back a config file written by an older grug-bot with the new settings added and every existing value kept,
-    /// or warns once about a file from a newer grug-bot, which is left untouched (issue #14). A file at the current
-    /// version is not rewritten. <see cref="ConfigUpgrade"/> makes the decision and builds the file. The config already
-    /// loaded has the same values either way, so a failure here is logged and the mod carries on.
+    /// or warns once about a file from a newer grug-bot, or one it can't check; either is left untouched (issue #14).
+    /// A file at the current version is not rewritten. <see cref="ConfigUpgrade"/> makes the decision and builds the
+    /// file. The config already loaded has the same values either way, so a failure here is logged and the mod carries on.
     /// </summary>
     private static void UpgradeOlderConfigFile(ICoreServerAPI api, ILogger log)
     {
@@ -125,8 +125,9 @@ public sealed class GrugBotModSystem : ModSystem
                 // Describe names the versions only, never the token, and has no curly braces.
                 log.Notification(upgrade.Describe());
             }
-            else if (upgrade.Action == ConfigUpgradeAction.NewerThanMod)
+            else if (upgrade.Action is ConfigUpgradeAction.NewerThanMod or ConfigUpgradeAction.Unreadable)
             {
+                // Versions only for a newer file, a fixed sentence for an unreadable one: never file content.
                 log.Warning(upgrade.Describe());
             }
         }
