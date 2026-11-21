@@ -66,24 +66,24 @@ public class VtmlTests
     }
 
     [Theory]
-    [InlineData("a & b", "a &amp; b")]
     [InlineData("<b>hi</b>", "&lt;b&gt;hi&lt;/b&gt;")]
+    [InlineData("<i>", "&lt;i&gt;")]
     [InlineData("1 < 2 > 0", "1 &lt; 2 &gt; 0")]
-    [InlineData("&lt;", "&amp;lt;")]
-    [InlineData("&&", "&amp;&amp;")]
     [InlineData("no markup \"here\"", "no markup \"here\"")]
     [InlineData("", "")]
-    public void Escaping_covers_ampersand_and_angle_brackets(string input, string expected)
+    public void Escaping_covers_angle_brackets(string input, string expected)
     {
-        // Gotcha #20: th3essentials escaped < and > but not &.
+        // Gotcha #20: a stray <font must not break the chat line.
         Assert.Equal(expected, Vtml.Escape(input));
     }
 
     [Theory]
-    [InlineData("<font color=red>x</font> & <i>")]
-    [InlineData("&amp;lt; &gt; <3")]
-    public void Unescaping_undoes_escaping(string text)
+    [InlineData("a & b")]
+    [InlineData("&&")]
+    [InlineData("&amp;")]
+    public void An_ampersand_is_left_as_it_is(string input)
     {
-        Assert.Equal(text, Vtml.Unescape(Vtml.Escape(text)));
+        // Decision #46: the game's chat shows &amp; literally (owner's test 5.2), and a lone & can't open a tag.
+        Assert.Equal(input, Vtml.Escape(input));
     }
 }

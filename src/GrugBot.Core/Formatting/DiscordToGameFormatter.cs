@@ -43,8 +43,8 @@ public static class DiscordToGameFormatter
     public static bool IsValidNameColor(string? color) => color is not null && NameColor.IsMatch(color);
 
     /// <summary>
-    /// Formats one chat channel message for General. Both the name and the text have <c>&amp;</c>, <c>&lt;</c> and
-    /// <c>&gt;</c> escaped (gotcha #20), and nothing else in them is changed.
+    /// Formats one chat channel message for General. Both the name and the text have <c>&lt;</c> and <c>&gt;</c>
+    /// escaped (gotcha #20, decision #46), and nothing else in them is changed: <c>&amp;</c> passes through as typed.
     /// </summary>
     /// <param name="discordName">The poster's Discord name, from <see cref="DiscordName"/>. Not yet escaped.</param>
     /// <param name="text">

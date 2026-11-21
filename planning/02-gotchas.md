@@ -31,7 +31,7 @@ Things that will bite us, roughly ordered by how likely they are to cost a day. 
 17. **Join/leave edge cases.** `PlayerDisconnect` fires for players who were still `Connecting` (th3essentials checks `ConnectionState`). The disconnecting player is still counted in `AllOnlinePlayers`, so subtract 1.
 18. **Shutdown messages get lost.** `async void` sends during `EnumServerRunPhase.Shutdown` race the process exit. Flush the queue synchronously with a ~3 s timeout before returning, and suppress leave messages from then on (decision #22). A crash still produces no message (ADR 0001).
 19. **Death messages.** *(Verified 2026-11-16: `GetDeathMessage` exists and is private in 1.22.7; the sentences are `deathmsg-*` lang keys like "Player {0} starved to death.")* Vanilla wording lives in a private `ServerSystemEntitySimulation.GetDeathMessage`, which th3essentials reaches by reflection. It's private, so expect breakage across versions. Also honour the world config `disableDeathMessages`.
-20. **VTML going *into* the game.** Discord text must have `<`, `>` and `&` escaped, or a stray `<font` will break the chat line. th3essentials escapes `<` and `>` but not `&`.
+20. **VTML going *into* the game.** Discord text must have `<` and `>` escaped, or a stray `<font` will break the chat line. Leave `&` as it is: the game's chat shows `&amp;` literally (found in owner testing), and a lone `&` can't open a tag. th3essentials does the same (decision #46).
 
 ## thebasics (Proximity Chat) integration
 

@@ -39,7 +39,7 @@ Posted to the **General** group as `EnumChatType.OthersMessage`, with th3essenti
 ```
 
 - `DiscordName` is the server nickname (`SocketGuildUser.DisplayName`), falling back to the global name, then the username. It is VTML-escaped.
-- Mentions resolve to `@Name`, `@Role` and `#channel`, then the whole text has `& < >` escaped.
+- Mentions resolve to `@Name`, `@Role` and `#channel`, then the whole text has `<` and `>` escaped. `&` is left as it is, because the game's chat shows `&amp;` literally (found in owner testing, decision #46).
 - Attachments-only messages show `[Attachments]`. Empty messages are ignored.
 - Colour is configurable (`DiscordNameColor`).
 - Ignore our own bot, any webhook, and (configurable) other bots.
