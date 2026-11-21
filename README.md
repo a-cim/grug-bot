@@ -44,6 +44,8 @@ dotnet publish src/GrugBot/GrugBot.csproj -c Release   # writes dist/grugbot_<ve
 
 The version comes from `src/GrugBot/modinfo.json`.
 
+CI (`.github/workflows/ci.yml`) builds and tests `GrugBot.Core` only, on every push to `main` and every pull request. It can't build the mod project because the Vintage Story DLLs aren't available there, so build that locally before opening a PR.
+
 ## Credits
 
 grug-bot stands on the shoulders of:
