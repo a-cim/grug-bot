@@ -71,7 +71,7 @@ Use `/nexttempstorm` (it has a "start next storm now" subcommand; check the exac
 | # | Do | Expect | Proves |
 |---|---|---|---|
 | 5.1 🧪 | Post `hello` in `#chat` | `Name: hello` in General, name in `DiscordNameColor` | 05 |
-| 5.2 🧪 | Post `<font color=red>x</font> & <i>` | Shown literally, chat line not broken | gotcha #20 |
+| 5.2 🧪 | Post `<font color=red>x</font> & <i>` | Shown literally (a plain `&`, not `&amp;`), chat line not broken | gotcha #20, #46 |
 | 5.3 🧪 | Mention a user, a role, a channel | `@Name`, `@Role`, `#channel` | 05, #41 |
 | 5.4 | Mention a user who hasn't posted recently (not cached) | Still resolves to `@Name`; no stall in the game | #41 |
 | 5.5 🧪 | Multi-line message | One line, newlines as spaces | #25 |

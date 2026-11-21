@@ -15,12 +15,14 @@ using ILogger = Vintagestory.API.Common.ILogger;
 namespace GrugBot;
 
 /// <summary>
-/// The bot's connection to Discord, and the send loop that posts queued lines to the chat channel.
+/// The bot's connection to Discord, the send loop that posts queued lines to the chat channel, and the
+/// hand-off of messages posted in the chat channel (<see cref="ChatChannelMessageReceived"/>).
 /// </summary>
 /// <remarks>
 /// Nothing here may hold up the server (01-architecture § Lifecycle): logging in and sending run on
 /// background tasks, the game thread only ever calls <see cref="EnqueueChat"/>, and nothing waits on a
-/// Discord task. Handlers for game events are subscribed once by the mod system, never on Ready, which
+/// Discord task. Chat channel messages are handed over on a Discord.Net thread, so whoever handles them
+/// must reach the game through <c>EnqueueMainThreadTask</c> (gotcha #16). Handlers for game events are subscribed once by the mod system, never on Ready, which
 /// Discord.Net raises again after some reconnects (gotcha #11). The token is never logged; any text from
 /// Discord.Net is passed through <see cref="SecretRedactor"/> before it reaches the log (decision #27).
 /// </remarks>
@@ -68,6 +70,17 @@ public sealed class DiscordConnection : IDisposable
     private int _readyCount;
     private int _disposed;
 
+    /// <summary>
+    /// Raised on a Discord.Net thread for each user message posted in the chat channel, including our own bot's,
+    /// other bots' and webhooks': the handler decides what to ignore. Discord system messages (pins, joins) and
+    /// other channels never get here. Handlers must be quick and must not call the game API directly (gotcha #16).
+    /// Subscribe before <see cref="Start"/>.
+    /// </summary>
+    public event Action<SocketUserMessage>? ChatChannelMessageReceived;
+
+    /// <summary>The user ID of our own bot, once Discord has said who we are (from the first Ready on); else <c>null</c>.</summary>
+    public ulong? BotUserId => _client.CurrentUser?.Id;
+
     public DiscordConnection(ILogger log, ResolvedToken token, ulong chatChannelId)
     {
         if (token.Value is null)
@@ -86,6 +99,7 @@ public sealed class DiscordConnection : IDisposable
         });
         _client.Log += OnDiscordLogAsync;
         _client.Ready += OnReadyAsync;
+        _client.MessageReceived += OnMessageReceivedAsync;
     }
 
     /// <summary>
@@ -126,6 +140,7 @@ public sealed class DiscordConnection : IDisposable
 
         // Not disposed: the background tasks may still look at its token while they wind down.
         _stopping.Cancel();
+        _client.MessageReceived -= OnMessageReceivedAsync;
         _client.Ready -= OnReadyAsync;
         _client.Log -= OnDiscordLogAsync;
 
@@ -312,6 +327,34 @@ public sealed class DiscordConnection : IDisposable
         catch (Exception e)
         {
             _log.Error("grug-bot hit an error when Discord became ready: {0}", Redact(e.ToString()));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Passes user messages posted in the chat channel to <see cref="ChatChannelMessageReceived"/>. Runs on a
+    /// Discord.Net thread for every message the bot can see, so it only checks the channel and returns.
+    /// </summary>
+    private Task OnMessageReceivedAsync(SocketMessage message)
+    {
+        try
+        {
+            if (Volatile.Read(ref _disposed) != 0 || Volatile.Read(ref _gaveUp) != 0)
+            {
+                return Task.CompletedTask;
+            }
+
+            // A thread under the chat channel has its own ID, so it isn't relayed either.
+            if (message is SocketUserMessage userMessage && message.Channel.Id == _chatChannelId)
+            {
+                ChatChannelMessageReceived?.Invoke(userMessage);
+            }
+        }
+        catch (Exception e)
+        {
+            // Never throw back into Discord.Net.
+            _log.Error("grug-bot could not relay a Discord message to General: {0}", Redact(e.ToString()));
         }
 
         return Task.CompletedTask;
