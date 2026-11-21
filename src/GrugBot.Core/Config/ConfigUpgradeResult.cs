@@ -16,7 +16,9 @@ public sealed class ConfigUpgradeResult
 
     public ConfigUpgradeAction Action { get; }
 
-    /// <summary>The <c>ConfigVersion</c> found in the file; 0 when the file has none.</summary>
+    /// <summary>
+    /// The <c>ConfigVersion</c> found in the file; 0 when the file has none or is <see cref="ConfigUpgradeAction.Unreadable"/>.
+    /// </summary>
     public int FileVersion { get; }
 
     /// <summary>The config version this build writes.</summary>
@@ -41,6 +43,10 @@ public sealed class ConfigUpgradeResult
             GrugBotConfig.DisplayPath + " is config version " + FileVersion + ", newer than this grug-bot build knows ("
             + CurrentVersion + "), so the file is left unchanged and settings this build doesn't know are ignored."
             + " Update grug-bot to use them.",
+        ConfigUpgradeAction.Unreadable =>
+            "grug-bot could not check whether " + GrugBotConfig.DisplayPath + " needs upgrading, because part of it isn't"
+            + " plain JSON (for example NaN or Infinity in a field), so the file is left unchanged and any new settings"
+            + " are not added to it. The settings it read are still used.",
         _ => GrugBotConfig.DisplayPath + " is up to date (config version " + FileVersion + ").",
     };
 

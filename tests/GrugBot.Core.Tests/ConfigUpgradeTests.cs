@@ -248,11 +248,20 @@ public class ConfigUpgradeTests
     [InlineData("[ 1, 2 ]")]
     [InlineData("\"text\"")]
     [InlineData("{ not json")]
-    public void A_file_that_is_not_a_json_object_is_kept_as_it_is(string file)
+    // Newtonsoft.Json writes NaN as a bare literal and the game reads it; System.Text.Json rejects it.
+    [InlineData("{ \"DiscordToken\": \"" + SecretToken + "\", \"Extra\": NaN }")]
+    public void A_file_that_cant_be_read_as_a_json_object_is_left_untouched_with_a_warning(string file)
     {
         ConfigUpgradeResult result = ConfigUpgrade.Decide(file);
 
-        Assert.Equal(ConfigUpgradeAction.KeepAsIs, result.Action);
+        Assert.Equal(ConfigUpgradeAction.Unreadable, result.Action);
         Assert.Null(result.UpgradedJson);
+
+        string warning = result.Describe();
+        Assert.Contains(GrugBotConfig.DisplayPath, warning);
+        Assert.DoesNotContain(SecretToken, warning);
+        Assert.DoesNotContain("Extra", warning);
+        Assert.DoesNotContain("{", warning);
+        Assert.DoesNotContain("}", warning);
     }
 }

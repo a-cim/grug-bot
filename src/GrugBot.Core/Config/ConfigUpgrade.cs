@@ -46,8 +46,8 @@ public static class ConfigUpgrade
     /// </list>
     /// Settings come out in the same order as in a new file, followed by any fields this build doesn't know. Names are
     /// matched ignoring case, as Newtonsoft.Json does when the game reads the file. Values, <c>null</c> included, are
-    /// copied as written. A file that isn't a JSON object is kept as it is; reading it into the config reports the problem.
-    /// Never throws.
+    /// copied as written. A file that can't be read as a JSON object is <see cref="ConfigUpgradeAction.Unreadable"/>
+    /// and left untouched. Never throws.
     /// </summary>
     /// <param name="fileJson">The config file's text.</param>
     /// <param name="currentVersion">The version this build writes; only tests pass anything but the default.</param>
@@ -57,7 +57,7 @@ public static class ConfigUpgrade
         {
             if (JsonNode.Parse(fileJson, documentOptions: ReadOptions) is not JsonObject file)
             {
-                return new ConfigUpgradeResult(ConfigUpgradeAction.KeepAsIs, 0, currentVersion, null);
+                return new ConfigUpgradeResult(ConfigUpgradeAction.Unreadable, 0, currentVersion, null);
             }
 
             int fileVersion = ReadVersion(file);
@@ -79,8 +79,8 @@ public static class ConfigUpgrade
         catch (Exception e) when (e is JsonException or ArgumentException or InvalidOperationException)
         {
             // Not JSON we can make sense of (System.Text.Json may report duplicate names with ArgumentException).
-            // Leave the file alone; the normal config load decides whether it is usable.
-            return new ConfigUpgradeResult(ConfigUpgradeAction.KeepAsIs, 0, currentVersion, null);
+            // Leave the file alone. The exception isn't kept: its message can quote part of the file.
+            return new ConfigUpgradeResult(ConfigUpgradeAction.Unreadable, 0, currentVersion, null);
         }
     }
 
