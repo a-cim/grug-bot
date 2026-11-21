@@ -1,3 +1,4 @@
+using System;
 using GrugBot.Core.Formatting;
 using Xunit;
 
@@ -29,7 +30,7 @@ public class DiscordToGameFormatterTests
     {
         // Test plan 5.2 and gotcha #20: a stray <font must not break the chat line.
         Assert.Equal(
-            "<font color=\"#7289DA\"><strong>Grug: </strong></font>&lt;font color=red&gt;x&lt;/font&gt; &amp; &lt;i&gt;",
+            "<font color=\"#7289DA\"><strong>Grug: </strong></font>&lt;font color=red&gt;x&lt;/font&gt; & &lt;i&gt;",
             DiscordToGameFormatter.Format("Grug", "<font color=red>x</font> & <i>", Blurple));
     }
 
@@ -37,17 +38,18 @@ public class DiscordToGameFormatterTests
     public void The_name_is_escaped_too()
     {
         Assert.Equal(
-            "<font color=\"#7289DA\"><strong>Ugg &lt;3 &amp; &lt;/strong&gt;: </strong></font>hi",
+            "<font color=\"#7289DA\"><strong>Ugg &lt;3 & &lt;/strong&gt;: </strong></font>hi",
             DiscordToGameFormatter.Format("Ugg <3 & </strong>", "hi", Blurple));
     }
 
     [Fact]
-    public void Text_that_looks_like_an_entity_shows_literally()
+    public void An_ampersand_passes_through_and_angle_brackets_are_escaped()
     {
-        // Someone types "&lt;" on Discord: players should see "&lt;", not "<".
-        Assert.Equal(
-            "<font color=\"#7289DA\"><strong>Grug: </strong></font>&amp;lt; &amp;amp;",
-            DiscordToGameFormatter.Format("Grug", "&lt; &amp;", Blurple));
+        // Decision #46: the game's chat shows &amp; literally (owner's test 5.2), so & is left as typed.
+        string? line = DiscordToGameFormatter.Format("Grug & Ugg", "fish & chips && <i>", Blurple);
+
+        Assert.Equal("<font color=\"#7289DA\"><strong>Grug & Ugg: </strong></font>fish & chips && &lt;i&gt;", line);
+        Assert.DoesNotContain("&amp;", line, StringComparison.Ordinal);
     }
 
     [Fact]

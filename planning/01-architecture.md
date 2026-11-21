@@ -71,7 +71,7 @@ grug-bot/
 1. `MessageReceived` in `ChatChannelId`.
 2. Ignore our own bot, webhooks, other bots (configurable), users in `IgnoredDiscordUserIds`, and empty messages. Do nothing if `Relay.DiscordToGame` is off.
 2a. Apply the Discord → Game rules (#25): newlines, length cap, custom emoji, attachments, stickers.
-3. Resolve mentions, then VTML-escape `& < >`.
+3. Resolve mentions, then VTML-escape `<` and `>` (not `&`: the game's chat shows `&amp;` literally, decision #46).
 4. `sapi.Event.EnqueueMainThreadTask(() => sapi.SendMessageToGroup(0, line, EnumChatType.OthersMessage))`.
 
 ## Config (`ModConfig/grugbot.json`)

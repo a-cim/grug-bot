@@ -42,10 +42,9 @@ public static class Vtml
     public static string ToPlainText(string text) => Unescape(StripTags(text));
 
     /// <summary>
-    /// Turns <c>&amp;</c>, <c>&lt;</c> and <c>&gt;</c> into <c>&amp;amp;</c>, <c>&amp;lt;</c> and <c>&amp;gt;</c>, so text
-    /// going into the game shows exactly as typed and can't open or close a tag (gotcha #20). One pass over the
-    /// text, so an <c>&amp;</c> added here is never escaped a second time, and text that already looks like an
-    /// entity (<c>&amp;lt;</c>) stays literal too. <see cref="Unescape"/> undoes it.
+    /// Turns <c>&lt;</c> and <c>&gt;</c> into <c>&amp;lt;</c> and <c>&amp;gt;</c>, so text going into the game can't open
+    /// or close a tag (gotcha #20). <c>&amp;</c> is left as it is: the game's chat shows <c>&amp;amp;</c> literally
+    /// rather than as <c>&amp;</c> (owner's test 5.2), and a lone <c>&amp;</c> can't open a tag (decision #46).
     /// </summary>
     public static string Escape(string text)
     {
@@ -54,9 +53,6 @@ public static class Vtml
         {
             switch (c)
             {
-                case '&':
-                    escaped.Append("&amp;");
-                    break;
                 case '<':
                     escaped.Append("&lt;");
                     break;
