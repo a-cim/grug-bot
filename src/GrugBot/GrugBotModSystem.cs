@@ -10,7 +10,7 @@ namespace GrugBot;
 /// <summary>
 /// Entry point of the grug-bot server mod. It loads or creates <c>ModConfig/grugbot.json</c>, works out
 /// where the Discord token comes from, says clearly when something essential is missing, and otherwise
-/// starts the Discord connection and the General chat relay.
+/// starts the Discord connection and the chat relay in both directions.
 /// Nothing in here may throw: a broken config must never stop the server from starting (01-architecture § Lifecycle).
 /// </summary>
 /// <remarks>
@@ -29,6 +29,7 @@ public sealed class GrugBotModSystem : ModSystem
 
     private DiscordConnection? _discord;
     private GeneralChatListener? _generalChat;
+    private ChatChannelListener? _chatChannel;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
@@ -87,12 +88,26 @@ public sealed class GrugBotModSystem : ModSystem
         _discord = new DiscordConnection(log, token, config.ChatChannelId);
         _generalChat = new GeneralChatListener(api, log, _discord, config.EscapeMarkdown);
         _generalChat.Subscribe();
+
+        // Off stops Discord → Game only; Game → Discord carries on (test plan 5.10).
+        if (config.Relay.DiscordToGame)
+        {
+            _chatChannel = new ChatChannelListener(api, log, _discord, config);
+            _chatChannel.Subscribe();
+        }
+        else
+        {
+            log.Notification("Relay.DiscordToGame is off in {0}, so messages from Discord aren't shown in game.", GrugBotConfig.DisplayPath);
+        }
+
         _discord.Start();
     }
 
     /// <summary>Unsubscribes from game events and lets go of Discord. Safe to call more than once.</summary>
     private void StopRelay()
     {
+        _chatChannel?.Dispose();
+        _chatChannel = null;
         _generalChat?.Dispose();
         _generalChat = null;
         _discord?.Dispose();
