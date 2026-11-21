@@ -49,3 +49,4 @@ Record each settled decision here: date, the decision, and why. Newest at the bo
 | 43 | 2026-11-16 | **Every storm gets a waning line.** If a storm ends (active → over) without its waning line having been posted, e.g. because Rustwall kills cut it short past the 0.02-day window, post `⛈️ The temporal storm seems to be waning` then. | One end-of-storm line per storm, in the familiar wording. |
 | 44 | 2026-11-16 | **grug-bot knows nothing about Rustwall** (no kill-shortening or climate messages). Parked as a future idea. | Keeps grug-bot a generic bridge; reads vanilla storm state only. |
 | 45 | 2026-11-21 | **Copyright holder and mod author is "Kazimiera"** (`LICENSE`, `modinfo.json` authors), replacing "grug-bot contributors". | Owner's choice. |
+| 46 | 2026-11-21 | **Discord → Game escapes only < and >**, not &. | Vintage Story's chat shows &amp; literally (owner's test 5.2); a lone & can't open a tag. |

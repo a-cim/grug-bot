@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace GrugBot.Core.Formatting;
@@ -39,4 +40,31 @@ public static class Vtml
     /// game escapes) survives as readable text instead of being mistaken for a tag.
     /// </summary>
     public static string ToPlainText(string text) => Unescape(StripTags(text));
+
+    /// <summary>
+    /// Turns <c>&lt;</c> and <c>&gt;</c> into <c>&amp;lt;</c> and <c>&amp;gt;</c>, so text going into the game can't open
+    /// or close a tag (gotcha #20). <c>&amp;</c> is left as it is: the game's chat shows <c>&amp;amp;</c> literally
+    /// rather than as <c>&amp;</c> (owner's test 5.2), and a lone <c>&amp;</c> can't open a tag (decision #46).
+    /// </summary>
+    public static string Escape(string text)
+    {
+        var escaped = new StringBuilder(text.Length);
+        foreach (char c in text)
+        {
+            switch (c)
+            {
+                case '<':
+                    escaped.Append("&lt;");
+                    break;
+                case '>':
+                    escaped.Append("&gt;");
+                    break;
+                default:
+                    escaped.Append(c);
+                    break;
+            }
+        }
+
+        return escaped.ToString();
+    }
 }

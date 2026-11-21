@@ -17,7 +17,7 @@ Rules for grug-bot code. Each one comes from a decision already made; the refere
 ## Safety
 
 - **Every message sent to Discord uses `AllowedMentions.None`.** *(gotcha #8)*
-- **Text going into the game has `&`, `<` and `>` VTML-escaped.** *(gotcha #20)*
+- **Text going into the game has `<` and `>` VTML-escaped, and `&` left as it is.** The game's chat shows `&amp;` literally (found in owner testing). *(gotcha #20, decision #46)*
 - **The token never appears in logs.** Log which source it came from, not its value. *(decision #27)*
 
 ## Packaging
