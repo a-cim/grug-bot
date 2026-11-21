@@ -6,8 +6,9 @@ using Vintagestory.API.Server;
 namespace GrugBot;
 
 /// <summary>
-/// Entry point of the grug-bot server mod. For now it loads or creates <c>ModConfig/grugbot.json</c>,
-/// works out where the Discord token comes from, and says clearly when something essential is missing.
+/// Entry point of the grug-bot server mod. It loads or creates <c>ModConfig/grugbot.json</c>, works out
+/// where the Discord token comes from, says clearly when something essential is missing, and otherwise
+/// starts the Discord connection and the General chat relay.
 /// Nothing in here may throw: a broken config must never stop the server from starting (01-architecture § Lifecycle).
 /// </summary>
 /// <remarks>
@@ -18,7 +19,18 @@ namespace GrugBot;
 /// </remarks>
 public sealed class GrugBotModSystem : ModSystem
 {
+    /// <summary>
+    /// Load late, after the usual mods (most keep the default of 0.1), so our <c>PlayerChat</c> handler is
+    /// subscribed after theirs and sees whether they consumed a message (decision #24).
+    /// </summary>
+    private const double LateExecuteOrder = 100;
+
+    private DiscordConnection? _discord;
+    private GeneralChatListener? _generalChat;
+
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
+
+    public override double ExecuteOrder() => LateExecuteOrder;
 
     public override void StartServerSide(ICoreServerAPI api)
     {
@@ -49,12 +61,40 @@ public sealed class GrugBotModSystem : ModSystem
                 return;
             }
 
-            // The Discord connection arrives in a later ticket (issue #3).
+            StartRelay(api, log, token, config);
         }
         catch (Exception e)
         {
             log.Error("grug-bot failed to start and is off. The server carries on normally. Cause: {0}", e);
+            StopRelay();
         }
+    }
+
+    public override void Dispose()
+    {
+        StopRelay();
+        base.Dispose();
+    }
+
+    /// <summary>
+    /// Subscribes to game events once, here and never on Discord's Ready (gotcha #11), then starts the
+    /// Discord login without waiting for it (01-architecture § Lifecycle).
+    /// </summary>
+    private void StartRelay(ICoreServerAPI api, ILogger log, ResolvedToken token, GrugBotConfig config)
+    {
+        _discord = new DiscordConnection(log, token, config.ChatChannelId);
+        _generalChat = new GeneralChatListener(api, log, _discord, config.EscapeMarkdown);
+        _generalChat.Subscribe();
+        _discord.Start();
+    }
+
+    /// <summary>Unsubscribes from game events and lets go of Discord. Safe to call more than once.</summary>
+    private void StopRelay()
+    {
+        _generalChat?.Dispose();
+        _generalChat = null;
+        _discord?.Dispose();
+        _discord = null;
     }
 
     /// <summary>

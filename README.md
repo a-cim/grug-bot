@@ -2,7 +2,7 @@
 
 A lightweight bridge between **Vintage Story** server chat and **Discord**, in both directions. It's built to do just that, without the extra features of all-in-one server mods. It also works with the [thebasics](https://mods.vintagestory.at/thebasics) proximity chat mod.
 
-> 🚧 **Status: early development.** The mod loads and writes its config, but doesn't connect to Discord yet. See `planning/` for the design.
+> 🚧 **Status: early development.** General chat reaches the Discord chat channel; Discord → Game and system messages are still to come. See `planning/` for the design.
 
 ## Target
 
