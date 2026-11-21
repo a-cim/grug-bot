@@ -1,0 +1,35 @@
+# Builds GrugBot.Core and runs its unit tests. The mod project (src/GrugBot) is never built here:
+# it needs the Vintage Story DLLs, which can't be redistributed (decision #29).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Build and test GrugBot.Core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Only the test project: it pulls in GrugBot.Core and nothing else. Not GrugBot.slnx, which includes the mod.
+      - name: Restore
+        run: dotnet restore tests/GrugBot.Core.Tests
+
+      - name: Build
+        run: dotnet build tests/GrugBot.Core.Tests --no-restore --configuration Release
+
+      # A failing test makes dotnet test exit non-zero, which fails the run.
+      - name: Test
+        run: dotnet test tests/GrugBot.Core.Tests --no-build --configuration Release
