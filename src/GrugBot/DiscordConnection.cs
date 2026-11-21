@@ -64,7 +64,6 @@ public sealed class DiscordConnection : IDisposable
 
     private readonly ILogger _log;
     private readonly ResolvedToken _token;
-    private readonly ulong _chatChannelId;
     private readonly DiscordSocketClient _client;
     private readonly DiscordOutbox _outbox;
     private readonly CancellationTokenSource _stopping = new();
@@ -106,7 +105,6 @@ public sealed class DiscordConnection : IDisposable
 
         _log = log;
         _token = token;
-        _chatChannelId = chatChannelId;
         _outbox = new DiscordOutbox(chatChannelId, systemChannelId);
 
         _client = new DiscordSocketClient(new DiscordSocketConfig
@@ -165,20 +163,32 @@ public sealed class DiscordConnection : IDisposable
     /// server waits on Discord, so the last lines aren't lost to the process exiting (gotcha #18, test plan 6.1).
     /// </summary>
     /// <remarks>
-    /// It returns at once, without waiting, when there's nothing to post or nothing could be posted anyway:
-    /// Discord isn't connected, it rejected us (the relay gave up), or the channels with lines waiting aren't
-    /// known. Lines still waiting when the time is up are dropped; the sends in flight are cancelled.
+    /// <para>
+    /// It returns at once, without waiting, when nothing could be posted anyway: Discord isn't connected, or it
+    /// rejected us (the relay gave up). Lines still waiting when the time is up are dropped; the sends in flight
+    /// are cancelled.
+    /// </para>
+    /// <para>
+    /// Whether anything is left to post is only decided under <see cref="_sendLock"/>, inside the bounded wait.
+    /// A send loop tick may already have taken the shutdown message off the queue and be posting it: the flush
+    /// waits for that tick to finish first, instead of finding the queue empty and letting <see cref="Dispose"/>
+    /// cancel the send. Queues that are empty, or whose channel isn't known, are skipped there at no cost.
+    /// </para>
     /// </remarks>
     public void FlushBeforeShutdown(TimeSpan timeout)
     {
-        if (IsOff || _outbox.IsEmpty)
+        if (IsOff)
         {
             return;
         }
 
-        if (_client.ConnectionState != ConnectionState.Connected || !HasKnownChannelWithLines())
+        if (_client.ConnectionState != ConnectionState.Connected)
         {
-            _log.Notification("grug-bot isn't connected to its Discord channels, so the lines still queued (such as the shutdown message) are dropped.");
+            if (!_outbox.IsEmpty)
+            {
+                _log.Notification("grug-bot isn't connected to Discord, so the lines still queued (such as the shutdown message) are dropped.");
+            }
+
             return;
         }
 
@@ -205,6 +215,11 @@ public sealed class DiscordConnection : IDisposable
             _log.Warning(
                 "grug-bot could not post everything still queued (such as the shutdown message) to Discord within {0} seconds, so the rest was dropped.",
                 timeout.TotalSeconds);
+        }
+        else if (!_outbox.IsEmpty)
+        {
+            // Left behind: lines for a channel Ready never found (an error was logged then), or the connection dropped.
+            _log.Notification("grug-bot could not post some queued lines before shutdown (a Discord channel it can't find, or the connection dropped), so they are dropped.");
         }
     }
 
@@ -384,7 +399,7 @@ public sealed class DiscordConnection : IDisposable
     {
         try
         {
-            IMessageChannel? chatChannel = _client.GetChannel(_chatChannelId) as IMessageChannel;
+            IMessageChannel? chatChannel = _client.GetChannel(_outbox.ChatChannelId) as IMessageChannel;
             IMessageChannel? systemChannel = _outbox.HasSeparateSystemChannel
                 ? _client.GetChannel(_outbox.SystemChannelId) as IMessageChannel
                 : chatChannel;
@@ -398,7 +413,7 @@ public sealed class DiscordConnection : IDisposable
                 _log.Error(
                     "grug-bot is connected to Discord as {0}, but can't find the chat channel {1} (ChatChannelId in {2}). Check the ID, and that the bot can view that channel. Lines for it wait until it can.",
                     botName,
-                    _chatChannelId,
+                    _outbox.ChatChannelId,
                     GrugBotConfig.DisplayPath);
             }
 
@@ -455,7 +470,7 @@ public sealed class DiscordConnection : IDisposable
             }
 
             // A thread under the chat channel has its own ID, so it isn't relayed either.
-            if (message is SocketUserMessage userMessage && message.Channel.Id == _chatChannelId)
+            if (message is SocketUserMessage userMessage && message.Channel.Id == _outbox.ChatChannelId)
             {
                 ChatChannelMessageReceived?.Invoke(userMessage);
             }
@@ -587,20 +602,6 @@ public sealed class DiscordConnection : IDisposable
     /// <summary>The Discord channel for one of the outbox's channel IDs, or <c>null</c> until Ready has found it.</summary>
     private IMessageChannel? ChannelFor(ulong channelId) =>
         channelId == _outbox.ChatChannelId ? _chatChannel : _systemChannel;
-
-    /// <summary>True when at least one channel with lines waiting is known, so a flush could post something.</summary>
-    private bool HasKnownChannelWithLines()
-    {
-        foreach (ulong channelId in _outbox.ChannelIds)
-        {
-            if (ChannelFor(channelId) is not null && !_outbox.IsEmptyFor(channelId))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     /// <summary>True once nothing will be sent any more: Discord refused us for good, or this was disposed.</summary>
     private bool IsOff => Volatile.Read(ref _gaveUp) != 0 || Volatile.Read(ref _disposed) != 0;

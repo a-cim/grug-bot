@@ -11,9 +11,9 @@ namespace GrugBot.Core.Sending;
 /// <remarks>
 /// <para>
 /// When both kinds go to the same channel they share one queue, so they're posted in the order they
-/// happened and batched together: a join line stays above the chat line said right after it, and the
+/// happened and batched together: a join message stays above the chat line said right after it, and the
 /// channel gets one message per send tick rather than two, which spares its rate limit (gotcha #10).
-/// When the channels differ, each has its own queue, so a batch never mixes chat and system lines.
+/// When the channels differ, each has its own queue, so a batch never mixes chat lines and system messages.
 /// </para>
 /// <para>Backlog limits while Discord is unreachable (decision #23) belong in <see cref="DiscordSendQueue"/>.</para>
 /// </remarks>
@@ -58,7 +58,7 @@ public sealed class DiscordOutbox
     public bool IsEmpty => _chat.IsEmpty && _system.IsEmpty;
 
     /// <summary>The system channel for a <c>SystemChannelId</c> setting: itself, or the chat channel when it's 0.</summary>
-    public static ulong ResolveSystemChannelId(ulong chatChannelId, ulong systemChannelId) =>
+    private static ulong ResolveSystemChannelId(ulong chatChannelId, ulong systemChannelId) =>
         systemChannelId == 0 ? chatChannelId : systemChannelId;
 
     /// <summary>Queues a finished chat line for the chat channel.</summary>
