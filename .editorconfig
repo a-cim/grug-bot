@@ -17,3 +17,9 @@ trim_trailing_whitespace = false
 [*.cs]
 csharp_style_namespace_declarations = file_scoped:suggestion
 dotnet_sort_system_directives_first = true
+
+# Culture-aware string comparison ignores characters such as the zero-width space that mention
+# neutralising relies on, so string comparisons must be ordinal (or say which culture they mean).
+# CA1310: culture-specific comparison without a StringComparison; CA1309: prefer ordinal.
+dotnet_diagnostic.CA1309.severity = warning
+dotnet_diagnostic.CA1310.severity = warning
