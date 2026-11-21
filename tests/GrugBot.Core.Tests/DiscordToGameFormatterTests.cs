@@ -55,7 +55,8 @@ public class DiscordToGameFormatterTests
     [Fact]
     public void The_text_is_otherwise_unchanged()
     {
-        // Markdown, mentions, emoji and spacing are left as posted; the Discord → Game rules (issue #5) come later.
+        // Format only escapes: markdown and spacing are left as posted, and mentions, emoji and the other
+        // Discord → Game rules are DiscordToGameText's job, done before this.
         const string Text = "  *hi* _there_ <@123> :) \"quoted\" ";
         string? line = DiscordToGameFormatter.Format("Grug", Text, Blurple);
 
