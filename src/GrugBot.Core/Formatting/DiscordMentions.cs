@@ -9,7 +9,7 @@ namespace GrugBot.Core.Formatting;
 public static class DiscordMentions
 {
     /// <summary>A zero-width space: invisible, but it stops Discord from seeing a mention.</summary>
-    public const char ZeroWidthSpace = '​';
+    public const char ZeroWidthSpace = '\u200B';
 
     private static readonly Regex EveryoneOrHere = new(@"@(?=everyone|here)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 

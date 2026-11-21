@@ -5,7 +5,7 @@ namespace GrugBot.Core.Tests;
 
 public class DiscordMentionsTests
 {
-    private const string Zwsp = "​";
+    private const string Zwsp = "\u200B";
 
     [Theory]
     [InlineData("@everyone hi", "@" + Zwsp + "everyone hi")]
