@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Vintage Story server mod. Build it with the VINTAGE_STORY environment variable pointing at a
+    Vintage Story 1.22.x install (the folder that contains VintagestoryAPI.dll). Folder names lie about
+    the version, so don't hard-code one here (gotcha #2).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>GrugBot</RootNamespace>
+    <AssemblyName>GrugBot</AssemblyName>
+    <!--
+      modinfo.json is the single source of the mod version; the assembly and the zip name follow it.
+      ModVersion is the "version" value, or empty if there isn't one. Version is only set when ModVersion
+      looks like a version (1.2.3 or 1.2.3-rc.1), so a bad value can't break restore or compile with a
+      cryptic error; GrugBotCheckBuildInputs below reports it clearly instead.
+    -->
+    <ModVersion>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)modinfo.json')), '(?s)^(?:.*?"version"\s*:\s*"([^"]*)")?.*$', '$1'))</ModVersion>
+    <GrugBotModVersionValid>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ModVersion)', '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$'))</GrugBotModVersionValid>
+    <Version Condition="'$(GrugBotModVersionValid)' == 'true'">$(ModVersion)</Version>
+  </PropertyGroup>
+
+  <!--
+    Game assemblies are provided by the server at runtime. Private=false keeps them out of the build
+    output, the publish folder and the mod zip (gotcha #3). The code only uses VintagestoryAPI. Newtonsoft.Json
+    and protobuf-net are referenced as a precaution: VintagestoryAPI's public types use them, and without them
+    the compiler can stop with CS0012 ("type is defined in an assembly that is not referenced"); th3essentials
+    references them for the same reason. Add VSEssentials / VSSurvivalMod (from $(VINTAGE_STORY)/Mods/) when a
+    ticket needs them.
+  -->
+  <ItemGroup>
+    <Reference Include="VintagestoryAPI">
+      <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="protobuf-net">
+      <HintPath>$(VINTAGE_STORY)/Lib/protobuf-net.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../GrugBot.Core/GrugBot.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="modinfo.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Fail early with a clear message instead of a wall of "type not found" or version errors. -->
+  <Target Name="GrugBotCheckBuildInputs" BeforeTargets="ResolveAssemblyReferences;CoreCompile">
+    <Error Condition="'$(GrugBotModVersionValid)' != 'true'"
+           Text="Could not read a valid version from src/GrugBot/modinfo.json. It needs a &quot;version&quot; like &quot;1.2.3&quot; (found: '$(ModVersion)')." />
+    <Error Condition="'$(VINTAGE_STORY)' == ''"
+           Text="The VINTAGE_STORY environment variable is not set. Point it at your Vintage Story 1.22.x install folder (the one containing VintagestoryAPI.dll), then build again." />
+    <Error Condition="'$(VINTAGE_STORY)' != '' And !Exists('$(VINTAGE_STORY)/VintagestoryAPI.dll')"
+           Text="VINTAGE_STORY is '$(VINTAGE_STORY)', but VintagestoryAPI.dll is not in that folder. Point it at your Vintage Story 1.22.x install folder." />
+  </Target>
+
+  <Import Project="../../build/Package.targets" />
+
+</Project>
