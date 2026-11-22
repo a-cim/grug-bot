@@ -2,14 +2,14 @@
 
 A lightweight bridge between **Vintage Story** server chat and **Discord**, in both directions. It's built to do just that, without the extra features of all-in-one server mods. It also works with the [thebasics](https://mods.vintagestory.at/thebasics) proximity chat mod.
 
-> 🚧 **Status: early development.** General chat is relayed in both directions, and Discord hears when the server starts and stops. Joins, leaves, deaths and temporal storms are still to come. See `planning/` for the design.
+> **Status: 1.0.0.** General chat is relayed in both directions. Discord also hears when the server starts and stops, when players join and leave (the bot's status shows how many are online), when players die, and when a temporal storm approaches, starts and ends. See `planning/` for the design.
 
 ## Target
 
 - Vintage Story **1.22.x** (.NET 10)
 - Discord bot with the Message Content intent enabled
 
-## Setup (planned, v1)
+## Setup
 
 ### 1. Create the Discord bot
 
@@ -27,8 +27,33 @@ A lightweight bridge between **Vintage Story** server chat and **Discord**, in b
 ### 2. Install the mod (server-side only)
 
 1. Drop `grugbot_<version>.zip` into the server's `Mods` folder and start the server once. This creates `ModConfig/grugbot.json`.
-2. Fill in `DiscordToken` and `ChatChannelId`, then restart.
-3. Optional: to post system messages (such as `✅ Server started`) in a channel of their own, set `SystemChannelId` to that channel's ID. `0` keeps them in the chat channel.
+2. Give grug-bot the bot token. The safest way is the `GRUGBOT_DISCORD_TOKEN` environment variable, which keeps the token out of the world folder; it wins over the config file when it's set. On Windows run `setx GRUGBOT_DISCORD_TOKEN "your-token"` and restart the server from a new terminal (or from the launcher after signing out and back in). On a hosted server without environment variables, put the token in `DiscordToken` instead.
+3. Set `ChatChannelId` to the channel ID you copied, then restart.
+4. Optional: to post system messages (such as `✅ Server started`) in a channel of their own, set `SystemChannelId` to that channel's ID. `0` keeps them in the chat channel.
+
+If the token or channel is missing, grug-bot logs one message saying what to fill in and the server carries on without it.
+
+### 3. Settings
+
+All settings live in `ModConfig/grugbot.json`. Changes take effect after a restart. When an update adds settings, grug-bot adds them to your file at their defaults and keeps your values.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `ConfigVersion` | current | Used by grug-bot to upgrade the file. Don't change it. |
+| `DiscordToken` | `""` | The bot token, used only when `GRUGBOT_DISCORD_TOKEN` isn't set. Treat the file as secret if you fill this in. |
+| `ChatChannelId` | `0` | The Discord channel paired with General. `0` means not set up. |
+| `SystemChannelId` | `0` | The channel for system messages (start/stop, joins, leaves, deaths, storms). `0` uses the chat channel. |
+| `DiscordNameColor` | `"#7289DA"` | The colour of Discord names in game. Must be `#RRGGBB` or `#RRGGBBAA`; anything else falls back to the default. |
+| `IgnoreOtherBots` | `true` | Ignore messages from other bots in the chat channel. Webhooks and grug-bot's own posts are always ignored. |
+| `IgnoredDiscordUserIds` | `[]` | Discord user IDs whose messages are never relayed to the game. |
+| `EscapeMarkdown` | `false` | When on, `*`, `_` and other Markdown in game chat show literally in Discord instead of formatting. |
+| `Relay.DiscordToGame` | `true` | Relay messages from the chat channel into General. |
+| `Relay.Joins` / `Relay.Leaves` | `true` | Post when players join or leave. |
+| `Relay.Deaths` | `true` | Post player deaths (also off when the world's `disableDeathMessages` is on). |
+| `Relay.ServerStartStop` | `true` | Post when the server starts and stops. |
+| `Relay.TemporalStorms` | `true` | Post temporal storm warnings, starts and ends. |
+
+With [thebasics](https://mods.vintagestory.at/thebasics) installed and its proximity chat on General, grug-bot stops relaying General to Discord (so nearby-only chat stays in game) and says so in the log.
 
 ## Building
 
