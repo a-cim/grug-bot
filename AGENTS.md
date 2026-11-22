@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues on `a-cim/grug-bot`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues on `a-cim/vs-grug-bot`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

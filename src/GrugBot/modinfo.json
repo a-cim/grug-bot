@@ -7,7 +7,7 @@
   "authors": [
     "Kazimiera"
   ],
-  "website": "https://github.com/a-cim/grug-bot",
+  "website": "https://github.com/a-cim/vs-grug-bot",
   "side": "server",
   "dependencies": {
     "game": "1.22.0"
