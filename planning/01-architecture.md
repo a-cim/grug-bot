@@ -70,8 +70,8 @@ grug-bot/
 
 1. `MessageReceived` in `ChatChannelId`.
 2. Ignore our own bot, webhooks, other bots (configurable), users in `IgnoredDiscordUserIds`, and empty messages. Do nothing if `Relay.DiscordToGame` is off.
-2a. Apply the Discord → Game rules (#25): newlines, length cap, custom emoji, attachments, stickers.
-3. Resolve mentions, then VTML-escape `<` and `>` (not `&`: the game's chat shows `&amp;` literally, decision #46).
+2a. Look up mentioned users Discord.Net doesn't have as server members over REST, on a background task (#41). Lines still reach General in the order they were posted.
+3. Apply the Discord → Game rules (#25, `DiscordToGameText` in Core): resolve mentions and custom emoji, newlines to spaces, attachment and sticker placeholders, then the 500-character cap. Then VTML-escape `<` and `>` (not `&`: the game's chat shows `&amp;` literally, decision #46).
 4. `sapi.Event.EnqueueMainThreadTask(() => sapi.SendMessageToGroup(0, line, EnumChatType.OthersMessage))`.
 
 ## Config (`ModConfig/grugbot.json`)
