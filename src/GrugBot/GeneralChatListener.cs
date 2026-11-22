@@ -92,10 +92,11 @@ public sealed class GeneralChatListener : IDisposable
 
     /// <summary>
     /// The thebasics safety check (gotcha #15): reads thebasics' Proximity chat group and turns the relay off if it is
-    /// General. Runs once, on the game thread, as the world starts running. thebasics sets that group during its own
-    /// startup, and every mod's <c>StartServerSide</c> and earlier run phases are over by <c>RunGame</c> (grug-bot also
-    /// loads late, so a <c>RunGame</c> handler of thebasics' would be registered first). So a 0 read here means
-    /// thebasics made General its Proximity chat group, not that it hasn't got that far yet; test plan 7.3 checks this.
+    /// General. Runs once, on the game thread, as the world starts running. thebasics is expected to have set that group
+    /// by then: it does so during its own startup, and every mod's <c>StartServerSide</c> and earlier run phases are
+    /// over by <c>RunGame</c> (grug-bot also loads late, so a <c>RunGame</c> handler of thebasics' should be registered
+    /// first). A 0 read here is therefore taken to mean thebasics made General its Proximity chat group, not that it
+    /// hasn't got that far yet. That timing isn't guaranteed by thebasics; test plan 7.3 checks it.
     /// Logs exactly one line, which says what was found.
     /// </summary>
     private void CheckTheBasics()

@@ -29,6 +29,9 @@ public class TheBasicsGuardTests
         Assert.True(decision.IsWarning);
         Assert.Contains("UseGeneralChannelAsProximityChat", decision.LogLine);
         Assert.Contains("does not relay General", decision.LogLine);
+        Assert.Contains("in thebasics' config under ModConfig", decision.LogLine);
+        // Decision #48: Discord → Game stays on; the warning says how to turn it off too.
+        Assert.Contains("Relay.DiscordToGame", decision.LogLine);
     }
 
     [Theory]

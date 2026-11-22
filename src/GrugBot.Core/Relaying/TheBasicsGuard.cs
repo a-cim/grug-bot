@@ -1,3 +1,5 @@
+using GrugBot.Core.Config;
+
 namespace GrugBot.Core.Relaying;
 
 /// <summary>
@@ -27,7 +29,7 @@ public static class TheBasicsGuard
 
     /// <summary>
     /// Decides whether General is relayed to Discord, given what the runtime lookup found. Only Game → Discord chat
-    /// from General is affected; system messages and Discord → Game are not.
+    /// from General is affected; system messages and Discord → Game are not (decision #48).
     /// </summary>
     /// <param name="lookup">What the lookup of thebasics' Proximity chat group found.</param>
     /// <param name="generalChatGroupId">The game's General chat group ID (<c>GlobalConstants.GeneralChatGroup</c>, 0).</param>
@@ -48,8 +50,9 @@ public static class TheBasicsGuard
                     "thebasics has made General its Proximity chat group (" + GeneralAsProximitySettingName
                     + " is true in thebasics' config), so grug-bot does not relay General to Discord: it would leak local"
                     + " roleplay. Only General chat to Discord is off; system messages and messages from Discord are"
-                    + " unchanged. To relay General again, set " + GeneralAsProximitySettingName
-                    + " to false in thebasics' config and restart the server.");
+                    + " unchanged (set Relay.DiscordToGame to false in " + GrugBotConfig.DisplayPath + " to turn messages"
+                    + " from Discord off too). To relay General again, set " + GeneralAsProximitySettingName
+                    + " to false in thebasics' config under ModConfig and restart the server.");
 
             case TheBasicsLookupOutcome.Found:
                 return new TheBasicsGuardDecision(
