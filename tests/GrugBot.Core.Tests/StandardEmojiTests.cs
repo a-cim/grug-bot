@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -235,6 +236,87 @@ public class StandardEmojiTests
     public void A_lone_surrogate_half_is_kept()
     {
         Assert.Equal("a\uD83Cb", Replace("a\uD83Cb"));
+    }
+
+    // Leftover joiners
+
+    [Theory]
+    [InlineData("a\u200D\U0001F600", "a:grinning:")]
+    [InlineData("a\u200D\u200D\U0001F600 b", "a:grinning: b")]
+    [InlineData("\U0001F44D\u200D\u200D\U0001F44D", ":thumbsup::thumbsup:")]
+    [InlineData("\U0001F600\u200D\u200D", ":grinning:")]
+    [InlineData("\U0001F468\u200D\u200D\U0001F469\u200D\U0001F467", ":family_man_woman_girl:")]
+    public void Joiners_before_or_between_emoji_are_not_left_behind(string text, string expected)
+    {
+        Assert.Equal(expected, Replace(text));
+    }
+
+    [Theory]
+    [InlineData("a\u200D\u200Db")]
+    [InlineData("\u200D")]
+    [InlineData("a\u200D\u00A9")] // the copyright sign on its own is text, so the joiner belongs to the text
+    public void Joiners_between_text_stay(string text)
+    {
+        Assert.Equal(text, Replace(text));
+    }
+
+    // Long text
+
+    [Fact]
+    public void A_long_chain_of_joined_emoji_takes_time_in_proportion_to_its_length()
+    {
+        // About 4,000 characters: 1,333 grinning faces joined by U+200D. Each run tried is at most as long as the
+        // longest emoji in the table, so this is quick; trying every run of the chain would take seconds.
+        string text = string.Join("\u200D", Enumerable.Repeat("\U0001F600", 1333));
+        var stopwatch = Stopwatch.StartNew();
+
+        string result = Replace(text);
+
+        stopwatch.Stop();
+        Assert.Equal(string.Concat(Enumerable.Repeat(":grinning:", 1333)), result);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), "Took " + stopwatch.Elapsed);
+    }
+
+    // A broken table fails safe
+
+    [Fact]
+    public void The_embedded_table_is_read_without_problems()
+    {
+        Assert.Null(StandardEmoji.LoadProblem);
+    }
+
+    [Fact]
+    public void With_an_empty_table_text_is_left_as_it_is()
+    {
+        EmojiTable table = EmojiTable.Parse(new StringReader("# nothing here\n"));
+        string text = "hi " + ThumbsUp + Vs16 + " \U0001FAE9 \u00A9\uFE0F";
+
+        Assert.True(table.IsEmpty);
+        Assert.NotNull(table.Problem);
+        Assert.Equal(text, StandardEmoji.Replace(text, table));
+    }
+
+    [Fact]
+    public void Lines_that_cannot_be_read_are_skipped_and_the_rest_still_work()
+    {
+        string tsv = string.Join(
+            "\n",
+            "# a comment",
+            "1F44D\tthumbsup",
+            "not hex\tbad",
+            "1F602",
+            "1F600\tNot<Plain>",
+            "D83D\tsurrogate",
+            "110000\ttoo_big",
+            "1F468 200D 1F469 200D 1F467\tfamily_man_woman_girl",
+            "1F602\tjoy");
+        EmojiTable table = EmojiTable.Parse(new StringReader(tsv));
+
+        Assert.Equal(":thumbsup: :joy: :family_man_woman_girl: :emoji:", StandardEmoji.Replace(
+            ThumbsUp + " " + Joy + " \U0001F468\u200D\U0001F469\u200D\U0001F467 \U0001F600", table));
+        Assert.Equal(3, table.MaxParts);
+        Assert.Contains("5 line(s)", table.Problem, StringComparison.Ordinal);
+        Assert.Contains("line 3", table.Problem, StringComparison.Ordinal);
     }
 
     // Mixed text
