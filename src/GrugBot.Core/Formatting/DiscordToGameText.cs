@@ -6,9 +6,9 @@ using System.Text.RegularExpressions;
 namespace GrugBot.Core.Formatting;
 
 /// <summary>
-/// Turns a chat channel message into the text shown after the Discord name in General (decisions #25 and #41,
-/// 05-message-format § Discord → Game): mentions become names, custom emoji become <c>:name:</c>, attachments and
-/// stickers get a short placeholder, and the result is one line of at most <see cref="MaxLength"/> characters.
+/// Turns a chat channel message into the text shown after the Discord name in General (decisions #25, #41 and #47,
+/// 05-message-format § Discord → Game): mentions become names, custom and standard emoji become <c>:name:</c>,
+/// attachments and stickers get a short placeholder, and the result is one line of at most <see cref="MaxLength"/> characters.
 /// </summary>
 /// <remarks>
 /// The result is not escaped. <see cref="DiscordToGameFormatter.Format"/> escapes it last, so resolved names and
@@ -64,7 +64,8 @@ public static class DiscordToGameText
     }
 
     /// <summary>
-    /// Builds the text for one message, not yet escaped: <see cref="ResolveMentions"/>, then <see cref="ToOneLine"/>,
+    /// Builds the text for one message, not yet escaped: <see cref="ResolveMentions"/>, then
+    /// <see cref="StandardEmoji.Replace"/> (so emoji in resolved names are replaced too), then <see cref="ToOneLine"/>,
     /// then trimmed, then the <see cref="Placeholders"/> after it, all within <see cref="MaxLength"/>. If the text has
     /// to be cut, it's the message's own text that is cut (ending in <see cref="Ellipsis"/>) and the placeholders are kept.
     /// </summary>
@@ -75,7 +76,7 @@ public static class DiscordToGameText
     /// <returns>The text to show, or an empty string if there's nothing to show (the message is then ignored).</returns>
     public static string Build(string? content, MentionLookups lookups, int attachmentCount, int stickerCount)
     {
-        string text = ToOneLine(ResolveMentions(content ?? "", lookups)).Trim();
+        string text = ToOneLine(StandardEmoji.Replace(ResolveMentions(content ?? "", lookups))).Trim();
         string placeholders = Placeholders(attachmentCount, stickerCount);
 
         if (placeholders.Length == 0)
