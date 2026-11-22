@@ -47,6 +47,7 @@ public sealed class GrugBotModSystem : ModSystem
     private DiscordConnection? _discord;
     private GeneralChatListener? _generalChat;
     private ChatChannelListener? _chatChannel;
+    private JoinLeaveListener? _joinsLeaves;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
@@ -124,6 +125,10 @@ public sealed class GrugBotModSystem : ModSystem
         {
             log.Notification("Relay.ServerStartStop is off in {0}, so Discord isn't told when the server starts or stops.", GrugBotConfig.DisplayPath);
         }
+
+        // Relay.Joins and Relay.Leaves switch their lines independently; the presence is always kept up to date (#7).
+        _joinsLeaves = new JoinLeaveListener(api, log, _discord, _runState, config.Relay);
+        _joinsLeaves.Subscribe();
 
         // The game has no way to take these back. After the relay has stopped they find nothing and return.
         api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, OnRunGame);
@@ -204,6 +209,8 @@ public sealed class GrugBotModSystem : ModSystem
     /// </summary>
     private void StopRelay()
     {
+        _joinsLeaves?.Dispose();
+        _joinsLeaves = null;
         _chatChannel?.Dispose();
         _chatChannel = null;
         _generalChat?.Dispose();

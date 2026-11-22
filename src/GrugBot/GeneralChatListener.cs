@@ -83,7 +83,8 @@ public sealed class GeneralChatListener : IDisposable
     /// <summary>
     /// The name other players see for this player in General (decision #36). Today that's the player
     /// name: thebasics doesn't put nicknames into General. If testing shows otherwise (test plan 2.9,
-    /// decision #40), the nickname lookup goes here.
+    /// decision #40), the nickname lookup goes here. Join and leave lines use it too, so every name on
+    /// Discord stays the same (decision #36).
     /// </summary>
-    private static string ShownName(IServerPlayer player) => player.PlayerName;
+    internal static string ShownName(IServerPlayer player) => player.PlayerName;
 }
