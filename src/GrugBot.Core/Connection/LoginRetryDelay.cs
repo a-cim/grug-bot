@@ -17,8 +17,11 @@ public static class LoginRetryDelay
         TimeSpan.FromMinutes(2),
     };
 
-    /// <summary>The longest wait between tries.</summary>
-    public static readonly TimeSpan Maximum = TimeSpan.FromMinutes(5);
+    /// <summary>
+    /// The longest wait between tries. Kept well under the 5-minute backlog limit (decision #50), so "Server started"
+    /// queued during a startup outage is still young enough to post once Discord is reachable again.
+    /// </summary>
+    public static readonly TimeSpan Maximum = TimeSpan.FromMinutes(2);
 
     /// <summary>The wait after <paramref name="failedAttempts"/> failed tries in a row (1 or more).</summary>
     public static TimeSpan After(int failedAttempts)

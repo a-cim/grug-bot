@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using GrugBot.Core.Players;
 
 namespace GrugBot.Core.Formatting;
@@ -15,6 +16,9 @@ namespace GrugBot.Core.Formatting;
 /// </remarks>
 public static class SystemMessages
 {
+    /// <summary>The warning sign emoji, written as escapes so no editor can mangle it.</summary>
+    private const string WarningEmoji = "\u26A0\uFE0F";
+
     /// <summary>Posted once per server run, when the first game tick is about to run (test plan 6.2).</summary>
     public static string ServerStarted { get; } = Format("✅ Server started");
 
@@ -27,6 +31,23 @@ public static class SystemMessages
     /// player, but is Markdown-escaped anyway so a translation can't break the formatting.
     /// </summary>
     public static string TemporalStorm(string sentence) => Format("⛈️ " + DiscordMarkdown.Escape(sentence.Trim()));
+
+    /// <summary>
+    /// Lines dropped from a channel's queue while Discord was unreachable (decision #23, test plan 6.4), led by the
+    /// warning sign emoji (U+26A0 U+FE0F): <c>***{warning} 12 messages skipped while Discord was unreachable***</c>,
+    /// or <c>1 message</c> for one. The send queue posts it once, after reconnecting, ahead of the lines it kept.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 1.</exception>
+    public static string MessagesSkipped(int count)
+    {
+        if (count < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "Only post this when something was skipped.");
+        }
+
+        string messages = count == 1 ? " message" : " messages";
+        return Format(WarningEmoji + " " + count.ToString(CultureInfo.InvariantCulture) + messages + " skipped while Discord was unreachable");
+    }
 
     /// <summary>
     /// Wraps <paramref name="text"/> in bold-italic markers: <c>***{text}***</c>. Surrounding whitespace is
