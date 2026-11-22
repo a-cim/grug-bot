@@ -1,5 +1,6 @@
 using System;
 using GrugBot.Core.Formatting;
+using GrugBot.Core.Relaying;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
@@ -9,7 +10,8 @@ namespace GrugBot;
 
 /// <summary>
 /// Game → Discord for chat: passes what players say in General to the chat channel. Every other chat
-/// group (thebasics' Proximity and Global OOC, player-made groups) is ignored (decision #7).
+/// group (thebasics' Proximity and Global OOC, player-made groups) is ignored (decision #7). If thebasics has
+/// made General its Proximity chat group, General isn't relayed either (issue #11, <see cref="TheBasicsGuard"/>).
 /// </summary>
 public sealed class GeneralChatListener : IDisposable
 {
@@ -19,6 +21,9 @@ public sealed class GeneralChatListener : IDisposable
     private readonly bool _escapeMarkdown;
     private bool _subscribed;
 
+    // Turned off by the thebasics check at RunGame. On until then: players can't chat before the world runs.
+    private bool _relayGeneral = true;
+
     public GeneralChatListener(ICoreServerAPI api, ILogger log, DiscordConnection discord, bool escapeMarkdown)
     {
         _api = api;
@@ -27,7 +32,10 @@ public sealed class GeneralChatListener : IDisposable
         _escapeMarkdown = escapeMarkdown;
     }
 
-    /// <summary>Subscribes to the game's chat event. Called once, from <c>StartServerSide</c>.</summary>
+    /// <summary>
+    /// Subscribes to the game's chat event, and schedules the thebasics check for <c>RunGame</c>. Called once, from
+    /// <c>StartServerSide</c>.
+    /// </summary>
     public void Subscribe()
     {
         if (_subscribed)
@@ -36,6 +44,8 @@ public sealed class GeneralChatListener : IDisposable
         }
 
         _api.Event.PlayerChat += OnPlayerChat;
+        // The game has no way to take this back; after Dispose it finds nothing to do.
+        _api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, CheckTheBasics);
         _subscribed = true;
     }
 
@@ -56,7 +66,7 @@ public sealed class GeneralChatListener : IDisposable
     {
         try
         {
-            if (chatGroupId != GlobalConstants.GeneralChatGroup)
+            if (!_relayGeneral || chatGroupId != GlobalConstants.GeneralChatGroup)
             {
                 return;
             }
@@ -77,6 +87,43 @@ public sealed class GeneralChatListener : IDisposable
         catch (Exception e)
         {
             _log.Error("grug-bot could not relay a General chat message: {0}", e);
+        }
+    }
+
+    /// <summary>
+    /// The thebasics safety check (gotcha #15): reads thebasics' Proximity chat group and turns the relay off if it is
+    /// General. Runs once, on the game thread, as the world starts running. thebasics sets that group during its own
+    /// startup, and every mod's <c>StartServerSide</c> and earlier run phases are over by <c>RunGame</c> (grug-bot also
+    /// loads late, so a <c>RunGame</c> handler of thebasics' would be registered first). So a 0 read here means
+    /// thebasics made General its Proximity chat group, not that it hasn't got that far yet; test plan 7.3 checks this.
+    /// Logs exactly one line, which says what was found.
+    /// </summary>
+    private void CheckTheBasics()
+    {
+        if (!_subscribed)
+        {
+            return;
+        }
+
+        try
+        {
+            TheBasicsGuardDecision decision = TheBasicsGuard.Decide(TheBasicsProbe.Look(_api), GlobalConstants.GeneralChatGroup);
+            _relayGeneral = decision.RelayGeneral;
+
+            // The line can hold exception text, so it goes in as an argument, never as the format string.
+            if (decision.IsWarning)
+            {
+                _log.Warning("{0}", decision.LogLine);
+            }
+            else
+            {
+                _log.Notification("{0}", decision.LogLine);
+            }
+        }
+        catch (Exception e)
+        {
+            // Our own bug, not thebasics': keep relaying, as for a failed lookup.
+            _log.Error("grug-bot could not check thebasics' Proximity chat group, so General is still relayed. Cause: {0}", e);
         }
     }
 

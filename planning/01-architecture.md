@@ -59,7 +59,7 @@ grug-bot/
 | Source | Hook | Notes |
 |---|---|---|
 | General chat **only** | `Event.PlayerChat` where the chat group is `GlobalConstants.GeneralChatGroup` (0) | All other chat groups are ignored, including thebasics Proximity, Global OOC (parked) and player groups. grug-bot loads late (high `ExecuteOrder`) and **skips messages another mod consumed** (#24). Name = shown name (#36). |
-| *(safety check)* thebasics | At `RunGame`, reflect `ProximityChatGroupId` from `RPProximityChatSystem` if it's loaded | If it's **0**, General has become proximity chat. Disable the relay and log a warning. **The live server is not configured this way** (2026-11-16), so this is a guard only. |
+| *(safety check)* thebasics | At `RunGame`, reflect `ProximityChatGroupId` from `RPProximityChatSystem` if it's loaded | If it's **0**, General has become proximity chat. Disable the relay and log a warning. If the lookup fails (renamed type, missing property, exception), log one warning and **keep** the relay on (issue #11). **The live server is not configured this way** (2026-11-16), so this is a guard only. |
 | Join | `Event.PlayerNowPlaying` | `📥 Player {IGN} connected (n/max)` |
 | Leave | `Event.PlayerDisconnect` | Skip players still `Connecting`. n = admitted − 1. **Suppressed once shutdown begins** (#22). |
 | Death | `Event.PlayerDeath` | Vanilla sentence via reflection, with a fallback. Respect `disableDeathMessages`. |
