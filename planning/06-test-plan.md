@@ -90,7 +90,7 @@ Use `/nexttempstorm` (it has a "start next storm now" subcommand; check the exac
 | 6.2 | Server start | `***✅ Server started***` once | 05 |
 | 6.3 | Block Discord for 2 min, chat in game, unblock | Lines arrive after reconnect | #23 |
 | 6.4 | Block Discord for > 5 min, chat in game, unblock | Old lines dropped; one `***⚠️ n messages skipped while Discord was unreachable***` | #23 |
-| 6.5 | Start the server with Discord blocked, unblock within 5 min | "Server started" arrives after connecting | #23 |
+| 6.5 | Start the server with Discord blocked, unblock within 3 min | "Server started" arrives after connecting | #23 |
 | 6.6 | Kill the server process | No shutdown message (accepted limitation) | ADR 0001 |
 
 ## 7. thebasics guard
