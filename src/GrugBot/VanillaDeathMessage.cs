@@ -151,7 +151,7 @@ internal sealed class VanillaDeathMessage
         return null;
     }
 
-    private static MethodInfo? FindMethod(Type type, string name, Func<MethodInfo, bool> matches)
+    private static MethodInfo? FindMethod(Type type, string name, System.Func<MethodInfo, bool> matches)
     {
         for (Type? t = type; t is not null; t = t.BaseType)
         {
