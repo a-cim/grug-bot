@@ -76,7 +76,7 @@ Use `/nexttempstorm` (it has a "start next storm now" subcommand; check the exac
 | 5.4 | Mention a user who hasn't posted recently (not cached) | Still resolves to `@Name`; no stall in the game | #41 |
 | 5.5 🧪 | Multi-line message | One line, newlines as spaces | #25 |
 | 5.6 🧪 | Message over 500 chars | Cut at 500 with `…` | #25 |
-| 5.7 🧪 | Custom emoji, image only, text + 2 images, sticker only | `:name:`, `[Attachment]`, `text [2 Attachments]`, `[Sticker]` | #25 |
+| 5.7 🧪 | Custom emoji, image only, text + 2 images, sticker only; standard emoji 👍, 👍🏽, 😂, 👨‍👩‍👧, 🇳🇴, 1️⃣, and `© → …` | `:name:`, `[Attachment]`, `text [2 Attachments]`, `[Sticker]`; `:thumbsup:`, `:thumbsup:`, `:joy:`, `:family_man_woman_girl:`, `:flag_no:`, `:one:`, and `© → …` unchanged, with no boxes anywhere | #25, #47 |
 | 5.8 | Reply to a message; edit a message; delete a message | Reply relays just its text; edit and delete do nothing | #25 |
 | 5.9 | Another bot posts; a user in `IgnoredDiscordUserIds` posts | Nothing in game (bots only if `IgnoreOtherBots`) | #28 |
 | 5.10 | `Relay.DiscordToGame: false` | Nothing reaches the game; Game → Discord still works | #28 |

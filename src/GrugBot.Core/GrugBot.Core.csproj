@@ -10,4 +10,14 @@
     <AssemblyName>GrugBot.Core</AssemblyName>
   </PropertyGroup>
 
+  <!--
+    Standard emoji names (decision #47), generated from gemoji by tools/generate-emoji-names.py. Embedded, so the
+    mod zip gains no extra file; StandardEmoji reads it by this name.
+  -->
+  <ItemGroup>
+    <!-- The tests read the emoji table through an internal seam (EmojiTable), to check a bad table fails safe. -->
+    <InternalsVisibleTo Include="GrugBot.Core.Tests" />
+    <EmbeddedResource Include="Formatting/EmojiNames.tsv" LogicalName="GrugBot.Core.Formatting.EmojiNames.tsv" />
+  </ItemGroup>
+
 </Project>

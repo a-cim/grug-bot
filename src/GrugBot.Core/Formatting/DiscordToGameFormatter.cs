@@ -49,7 +49,8 @@ public static class DiscordToGameFormatter
     /// <param name="discordName">The poster's Discord name, from <see cref="DiscordName"/>. Not yet escaped.</param>
     /// <param name="text">
     /// The text to show, not yet escaped: the message after the Discord → Game rules (mentions, custom emoji,
-    /// attachments, newlines and the length cap, decision #25), from <see cref="DiscordToGameText.Build"/>.
+    /// attachments, newlines and the length cap, decision #25, and standard emoji as <c>:name:</c>, decision #47),
+    /// from <see cref="DiscordToGameText.Build"/>.
     /// </param>
     /// <param name="nameColor">
     /// The <c>DiscordNameColor</c> setting. One that isn't a colour (see <see cref="IsValidNameColor"/>) is replaced with

@@ -54,6 +54,7 @@ grug-bot stands on the shoulders of:
 - **[Th3Essentials](https://gitlab.com/th3dilli_vintagestory/th3essentials)** by **Th3Dilli**. The Discord relay design, message formats and several techniques are adapted from it. If you want the full server toolkit (homes, warps, restarts, kits…), use Th3Essentials.
 - **Discord Bot** by **bluelightning32**, the original Vintage Story ↔ Discord bridge mod.
 - **[Discord.Net](https://github.com/discord-net/Discord.Net)**.
+- **[gemoji](https://github.com/github/gemoji)** by **GitHub**, for the emoji names shown in game.
 
 ## License
 

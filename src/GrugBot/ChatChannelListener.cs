@@ -72,6 +72,12 @@ public sealed class ChatChannelListener : IDisposable
                 _nameColor,
                 GrugBotConfig.DefaultDiscordNameColor);
         }
+
+        // Read the emoji table now rather than on the first message, and say once if it's broken (decision #47).
+        if (StandardEmoji.LoadProblem is { } emojiProblem)
+        {
+            log.Warning("grug-bot's emoji table has a problem, so standard emoji from Discord may show as boxes: {0}", emojiProblem);
+        }
     }
 
     /// <summary>Starts listening to the chat channel. Called once, from <c>StartServerSide</c>, before Discord connects.</summary>

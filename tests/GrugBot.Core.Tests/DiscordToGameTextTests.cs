@@ -152,10 +152,50 @@ public class DiscordToGameTextTests
         Assert.Equal(expected, Build(content));
     }
 
+    // Standard emoji (decision #47, test plan 5.7). StandardEmojiTests covers the matching itself.
+
     [Fact]
-    public void Ordinary_emoji_are_left_as_they_are()
+    public void A_standard_emoji_becomes_colon_name_colon_like_a_custom_one()
     {
-        Assert.Equal("🦴 :) :grug:", Build("🦴 :) :grug:"));
+        Assert.Equal(":bone: :) :grug: :thumbsup:", Build("\U0001F9B4 :) <:grug:1> \U0001F44D\U0001F3FD"));
+    }
+
+    [Fact]
+    public void Typed_emoji_names_and_text_symbols_are_left_as_typed()
+    {
+        Assert.Equal(":) :grug: \u00A9 \u2192 \u2026", Build(":) :grug: \u00A9 \u2192 \u2026"));
+    }
+
+    [Fact]
+    public void Emoji_in_a_resolved_name_are_replaced_too()
+    {
+        MentionLookups lookups = Lookups(new Dictionary<ulong, string> { [1] = "Grug \U0001F9B4" });
+
+        Assert.Equal("hi @Grug :bone:", DiscordToGameText.Build("hi <@1>", lookups, 0, 0));
+    }
+
+    [Fact]
+    public void A_message_of_only_variation_selectors_is_empty_and_ignored()
+    {
+        Assert.Equal("", Build("\uFE0F \uFE0F"));
+    }
+
+    [Fact]
+    public void The_cap_counts_emoji_names_not_the_emoji_as_posted()
+    {
+        // 60 thumbs up are 120 characters as posted, but 600 once shown as :thumbsup:.
+        string text = Build(string.Concat(Enumerable.Repeat("\U0001F44D", 60)));
+
+        Assert.Equal(DiscordToGameText.MaxLength, text.Length);
+        Assert.Equal(string.Concat(Enumerable.Repeat(":thumbsup:", 49)) + ":thumbsup…", text);
+    }
+
+    [Fact]
+    public void Emoji_names_are_escaped_with_the_rest_of_the_line()
+    {
+        Assert.Equal(
+            "<font color=\"#7289DA\"><strong>Grug: </strong></font>&lt;3 :heart:",
+            DiscordToGameFormatter.Format("Grug", Build("<3 \u2764\uFE0F"), "#7289DA"));
     }
 
     // Attachments and stickers (test plan 5.7)
@@ -297,10 +337,11 @@ public class DiscordToGameTextTests
     }
 
     [Fact]
-    public void The_cap_never_splits_an_emoji()
+    public void The_cap_never_splits_a_character_made_of_two_halves()
     {
-        // 498 letters, then emoji (two UTF-16 halves each): the cut would fall between the halves of the first one.
-        string content = new string('a', DiscordToGameText.MaxLength - 2) + "🦴🦴🦴";
+        // 498 letters, then characters of two UTF-16 halves each: the cut would fall between the halves of the first
+        // one. Mathematical double-struck A, since a real emoji would have become its name by now.
+        string content = new string('a', DiscordToGameText.MaxLength - 2) + "\U0001D538\U0001D538\U0001D538";
         string text = Build(content);
 
         Assert.Equal(new string('a', DiscordToGameText.MaxLength - 2) + "…", text);
@@ -341,9 +382,9 @@ public class DiscordToGameTextTests
     public void A_busy_message_follows_every_rule()
     {
         string text = Build(
-            "<@111111111111111111> <:grug:1> look\nat <#444444444444444444> <t:1700000000:R>",
+            "<@111111111111111111> <:grug:1> look\nat <#444444444444444444> <t:1700000000:R> \U0001F602",
             attachments: 1);
 
-        Assert.Equal("@Grug :grug: look at #general <t:1700000000:R> [Attachment]", text);
+        Assert.Equal("@Grug :grug: look at #general <t:1700000000:R> :joy: [Attachment]", text);
     }
 }
