@@ -16,7 +16,7 @@
 1F609	wink
 1F60A	blush
 1F607	innocent
-1F970	smiling_face_with_three_hearts
+1F970	smiling_face_with_3_hearts
 1F60D	heart_eyes
 1F929	star_struck
 1F618	kissing_heart
@@ -32,14 +32,14 @@
 1F61D	stuck_out_tongue_closed_eyes
 1F911	money_mouth
 1F917	hugging
-1F92D	hand_over_mouth
+1F92D	face_with_hand_over_mouth
 1FAE2	face_with_open_eyes_and_hand_over_mouth
 1FAE3	face_with_peeking_eye
 1F92B	shushing_face
 1F914	thinking
 1FAE1	saluting_face
 1F910	zipper_mouth
-1F928	raised_eyebrow
+1F928	face_with_raised_eyebrow
 1F610	neutral_face
 1F611	expressionless
 1F636	no_mouth
@@ -61,7 +61,7 @@
 1F912	thermometer_face
 1F915	head_bandage
 1F922	nauseated_face
-1F92E	vomiting_face
+1F92E	face_vomiting
 1F927	sneezing_face
 1F975	hot_face
 1F976	cold_face
@@ -74,12 +74,12 @@
 1F978	disguised_face
 1F60E	sunglasses
 1F913	nerd
-1F9D0	monocle_face
+1F9D0	face_with_monocle
 1F615	confused
 1FAE4	face_with_diagonal_mouth
 1F61F	worried
 1F641	slight_frown
-2639 FE0F	frowning_face
+2639 FE0F	frowning2
 1F62E	open_mouth
 1F62F	hushed
 1F632	astonished
@@ -104,13 +104,13 @@
 1F624	triumph
 1F621	rage
 1F620	angry
-1F92C	cursing_face
+1F92C	face_with_symbols_over_mouth
 1F608	smiling_imp
 1F47F	imp
 1F480	skull
 2620 FE0F	skull_crossbones
 1F4A9	poop
-1F921	clown_face
+1F921	clown
 1F479	japanese_ogre
 1F47A	japanese_goblin
 1F47B	ghost
@@ -170,7 +170,7 @@
 1F4A4	zzz
 1F44B	wave
 1F91A	raised_back_of_hand
-1F590 FE0F	raised_hand_with_fingers_splayed
+1F590 FE0F	hand_splayed
 270B	raised_hand
 1F596	vulcan_salute
 1FAF1	rightwards_hand
@@ -187,7 +187,7 @@
 1FAF0	hand_with_index_finger_and_thumb_crossed
 1F91F	love_you_gesture
 1F918	metal
-1F919	call_me_hand
+1F919	call_me
 1F448	point_left
 1F449	point_right
 1F446	point_up_2
@@ -1058,9 +1058,9 @@
 1F396 FE0F	medal_military
 1F3C6	trophy
 1F3C5	medal_sports
-1F947	1st_place_medal
-1F948	2nd_place_medal
-1F949	3rd_place_medal
+1F947	first_place
+1F948	second_place
+1F949	third_place
 26BD	soccer
 26BE	baseball
 1F94E	softball

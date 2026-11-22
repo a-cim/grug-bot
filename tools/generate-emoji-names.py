@@ -48,6 +48,19 @@ OVERRIDES = {
     "fist_oncoming": "punch",
     "crossed_fingers": "fingers_crossed",
     "skull_and_crossbones": "skull_crossbones",
+    "smiling_face_with_three_hearts": "smiling_face_with_3_hearts",
+    "clown_face": "clown",
+    "call_me_hand": "call_me",
+    "frowning_face": "frowning2",  # "frowning" is already the frowning face with open mouth
+    "raised_hand_with_fingers_splayed": "hand_splayed",
+    "monocle_face": "face_with_monocle",
+    "raised_eyebrow": "face_with_raised_eyebrow",
+    "cursing_face": "face_with_symbols_over_mouth",
+    "hand_over_mouth": "face_with_hand_over_mouth",
+    "vomiting_face": "face_vomiting",
+    "1st_place_medal": "first_place",
+    "2nd_place_medal": "second_place",
+    "3rd_place_medal": "third_place",
 }
 
 PLAIN = re.compile(r"[a-z0-9_]+")
@@ -83,6 +96,7 @@ def main():
         commit = "unknown"
 
     used = set()
+    names = set()
     lines = []
     for entry in entries:
         if not entry.get("emoji") or not entry.get("aliases"):
@@ -90,6 +104,9 @@ def main():
         used.add(first_alias(entry))
         name = name_for(entry)
         assert PLAIN.fullmatch(name), name
+        if name in names:
+            sys.exit(f"two emoji would both be shown as :{name}:")
+        names.add(name)
         points = " ".join(f"{ord(c):04X}" for c in entry["emoji"])
         lines.append(f"{points}\t{name}")
 
