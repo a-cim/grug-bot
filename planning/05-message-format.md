@@ -17,6 +17,7 @@ Everything posts as a **plain bot message** in **one channel** (decision #10). T
 | Storm waning | `***⛈️ The temporal storm seems to be waning***` | |
 | Server started | `***✅ Server started***` | |
 | Server stopped | `***⛔ Server shutdown***` | |
+| Messages skipped | `***⚠️ {n} messages skipped while Discord was unreachable***` (`1 message` for one) | ***⚠️ 12 messages skipped while Discord was unreachable*** |
 
 Notes:
 
