@@ -25,8 +25,8 @@
     output, the publish folder and the mod zip (gotcha #3). The code only uses VintagestoryAPI. Newtonsoft.Json
     and protobuf-net are referenced as a precaution: VintagestoryAPI's public types use them, and without them
     the compiler can stop with CS0012 ("type is defined in an assembly that is not referenced"); th3essentials
-    references them for the same reason. Add VSEssentials / VSSurvivalMod (from $(VINTAGE_STORY)/Mods/) when a
-    ticket needs them.
+    references them for the same reason. VSSurvivalMod (from $(VINTAGE_STORY)/Mods/) is for the temporal storm data
+    (SystemTemporalStability, #9); VSEssentials is referenced with it for the same CS0012 reason, as th3essentials does.
   -->
   <ItemGroup>
     <Reference Include="VintagestoryAPI">
@@ -39,6 +39,14 @@
     </Reference>
     <Reference Include="protobuf-net">
       <HintPath>$(VINTAGE_STORY)/Lib/protobuf-net.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSSurvivalMod">
+      <HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VSEssentials">
+      <HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -72,6 +80,8 @@
            Text="The VINTAGE_STORY environment variable is not set. Point it at your Vintage Story 1.22.x install folder (the one containing VintagestoryAPI.dll), then build again." />
     <Error Condition="'$(VINTAGE_STORY)' != '' And !Exists('$(VINTAGE_STORY)/VintagestoryAPI.dll')"
            Text="VINTAGE_STORY is '$(VINTAGE_STORY)', but VintagestoryAPI.dll is not in that folder. Point it at your Vintage Story 1.22.x install folder." />
+    <Error Condition="'$(VINTAGE_STORY)' != '' And Exists('$(VINTAGE_STORY)/VintagestoryAPI.dll') And !Exists('$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll')"
+           Text="VINTAGE_STORY is '$(VINTAGE_STORY)', but Mods/VSSurvivalMod.dll is not in that folder. Point it at a full Vintage Story 1.22.x install folder." />
   </Target>
 
   <Import Project="../../build/Package.targets" />
