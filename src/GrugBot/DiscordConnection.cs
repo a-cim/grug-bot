@@ -9,7 +9,9 @@ using Discord.Net;
 using Discord.WebSocket;
 using GrugBot.Core.Config;
 using GrugBot.Core.Connection;
+using GrugBot.Core.Formatting;
 using GrugBot.Core.Logging;
+using GrugBot.Core.Players;
 using GrugBot.Core.Sending;
 using ILogger = Vintagestory.API.Common.ILogger;
 
@@ -71,6 +73,16 @@ public sealed class DiscordConnection : IDisposable
     // One drain at a time: the send loop's tick and the shutdown flush never post the same channel at once,
     // so lines keep their order.
     private readonly SemaphoreSlim _sendLock = new(1, 1);
+
+    // When the bot presence (players: n/max) is due. Fed from the game thread, read by the send loop (decision #26).
+    private readonly PresenceSchedule _presence = new();
+
+    // The presence update in flight, if any. Only the send loop touches it, so at most one waits in
+    // Discord.Net's presence rate limit (5 a minute) and chat is never held up behind it.
+    private Task _presenceSend = Task.CompletedTask;
+
+    // 1 once a presence update has failed, so the next failures are only debug lines.
+    private int _presenceFailed;
 
     // Written by Ready (a Discord.Net thread), read by the send loop and the shutdown flush. The system channel
     // is the same object as the chat channel when SystemChannelId is 0.
@@ -155,6 +167,34 @@ public sealed class DiscordConnection : IDisposable
         }
 
         _outbox.EnqueueSystem(line);
+    }
+
+    /// <summary>
+    /// Shows <paramref name="count"/> in the bot's status as soon as Discord is connected: the count when the
+    /// server starts. Cheap and thread-safe; called on the game thread.
+    /// </summary>
+    public void ShowPlayerCount(PlayerCount count)
+    {
+        if (IsOff)
+        {
+            return;
+        }
+
+        _presence.ShowAtOnce(count, Now);
+    }
+
+    /// <summary>
+    /// A player joined or left: shows <paramref name="count"/> in the bot's status once nobody has joined or left
+    /// for about 5 seconds (decision #26, test plan 3.7). Cheap and thread-safe; called on the game thread.
+    /// </summary>
+    public void PlayerCountChanged(PlayerCount count)
+    {
+        if (IsOff)
+        {
+            return;
+        }
+
+        _presence.Changed(count, Now);
     }
 
     /// <summary>
@@ -399,6 +439,9 @@ public sealed class DiscordConnection : IDisposable
     {
         try
         {
+            // Restating the bot's status queues no message, so a second Ready doubles nothing up.
+            _presence.ShowAgain(Now);
+
             IMessageChannel? chatChannel = _client.GetChannel(_outbox.ChatChannelId) as IMessageChannel;
             IMessageChannel? systemChannel = _outbox.HasSeparateSystemChannel
                 ? _client.GetChannel(_outbox.SystemChannelId) as IMessageChannel
@@ -491,6 +534,8 @@ public sealed class DiscordConnection : IDisposable
         {
             while (await timer.WaitForNextTickAsync(stopping))
             {
+                StartPresenceUpdateIfDue();
+
                 await _sendLock.WaitAsync(stopping);
                 try
                 {
@@ -515,6 +560,68 @@ public sealed class DiscordConnection : IDisposable
             // Dispose was called.
         }
     }
+
+    /// <summary>
+    /// Starts sending the bot presence if it's due, without waiting for it. Does nothing while the last update is
+    /// still in flight or Discord isn't connected; a due update then waits for a later tick.
+    /// </summary>
+    private void StartPresenceUpdateIfDue()
+    {
+        try
+        {
+            if (!_presenceSend.IsCompleted || _client.ConnectionState != ConnectionState.Connected)
+            {
+                return;
+            }
+
+            PlayerCount? due = _presence.TakeDue(Now);
+            if (due is { } count)
+            {
+                _presenceSend = SetPresenceAsync(BotPresence.Format(count));
+            }
+        }
+        catch (Exception e)
+        {
+            LogPresenceFailure(e);
+        }
+    }
+
+    /// <summary>
+    /// Sets the bot's custom status, which Discord shows as the text alone, with no "Playing" in front. Failures are
+    /// logged and otherwise ignored: the status is a nicety, and Discord.Net sends it again after a reconnect.
+    /// </summary>
+    private async Task SetPresenceAsync(string text)
+    {
+        try
+        {
+            await _client.SetCustomStatusAsync(text);
+        }
+        catch (Exception e)
+        {
+            LogPresenceFailure(e);
+        }
+    }
+
+    private void LogPresenceFailure(Exception e)
+    {
+        if (_stopping.IsCancellationRequested)
+        {
+            return;
+        }
+
+        const string Message = "grug-bot could not update the player count in its Discord status. Cause: {0}";
+        if (Interlocked.Exchange(ref _presenceFailed, 1) == 0)
+        {
+            _log.Warning(Message, Redact(e.Message));
+        }
+        else
+        {
+            _log.Debug(Message, Redact(e.Message));
+        }
+    }
+
+    /// <summary>A monotonic clock for <see cref="PresenceSchedule"/>.</summary>
+    private static TimeSpan Now => TimeSpan.FromMilliseconds(Environment.TickCount64);
 
     /// <summary>
     /// The shutdown flush: waits for a send loop tick already in progress, then posts what's left. Never
