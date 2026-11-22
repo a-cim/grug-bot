@@ -50,3 +50,4 @@ Record each settled decision here: date, the decision, and why. Newest at the bo
 | 44 | 2026-11-16 | **grug-bot knows nothing about Rustwall** (no kill-shortening or climate messages). Parked as a future idea. | Keeps grug-bot a generic bridge; reads vanilla storm state only. |
 | 45 | 2026-11-21 | **Copyright holder and mod author is "Kazimiera"** (`LICENSE`, `modinfo.json` authors), replacing "grug-bot contributors". | Owner's choice. |
 | 46 | 2026-11-21 | **Discord → Game escapes only < and >**, not &. | Vintage Story's chat shows &amp; literally (owner's test 5.2); a lone & can't open a tag. |
+| 48 | 2026-11-22 | **Discord → Game stays on when thebasics makes General proximity**; only General → Discord is turned off. | Nothing private leaks (Discord text is meant for everyone); `Relay.DiscordToGame: false` turns it off for anyone who wants both directions off. Owner's choice, PR #26 review. |
