@@ -37,6 +37,29 @@ public class SystemMessagesTests
     }
 
     [Fact]
+    public void Messages_skipped_is_bold_italic_with_the_warning_emoji()
+    {
+        // Decision #23, test plan 6.4. The emoji is U+26A0 U+FE0F.
+        Assert.Equal(
+            "***\u26A0\uFE0F 12 messages skipped while Discord was unreachable***",
+            SystemMessages.MessagesSkipped(12));
+    }
+
+    [Fact]
+    public void Messages_skipped_says_message_for_one()
+    {
+        Assert.Equal(
+            "***\u26A0\uFE0F 1 message skipped while Discord was unreachable***",
+            SystemMessages.MessagesSkipped(1));
+    }
+
+    [Fact]
+    public void Messages_skipped_needs_something_skipped()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SystemMessages.MessagesSkipped(0));
+    }
+
+    [Fact]
     public void Format_wraps_the_text_in_bold_italic_markers()
     {
         // Decision #10.

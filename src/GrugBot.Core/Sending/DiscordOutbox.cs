@@ -15,11 +15,16 @@ namespace GrugBot.Core.Sending;
 /// channel gets one message per send tick rather than two, which spares its rate limit (gotcha #10).
 /// When the channels differ, each has its own queue, so a batch never mixes chat lines and system messages.
 /// </para>
-/// <para>Backlog limits while Discord is unreachable (decision #23) belong in <see cref="DiscordSendQueue"/>.</para>
+/// <para>
+/// The backlog limits while Discord is unreachable (decision #23) apply per queue (see <see cref="DiscordSendQueue"/>).
+/// With one channel, chat lines and system messages share its 500 lines and its one "messages skipped" line. With
+/// two, each channel keeps up to 500 of its own, and each posts its own "messages skipped" line, counting only its
+/// own lines, so the note sits in the channel that has the gap.
+/// </para>
 /// </remarks>
 public sealed class DiscordOutbox
 {
-    private readonly DiscordSendQueue _chat = new();
+    private readonly DiscordSendQueue _chat;
 
     // The same instance as _chat when the system channel is the chat channel.
     private readonly DiscordSendQueue _system;
@@ -27,7 +32,17 @@ public sealed class DiscordOutbox
     /// <param name="chatChannelId">The chat channel (<c>ChatChannelId</c>).</param>
     /// <param name="systemChannelId">The <c>SystemChannelId</c> setting: 0 means the chat channel.</param>
     public DiscordOutbox(ulong chatChannelId, ulong systemChannelId)
+        : this(chatChannelId, systemChannelId, TimeProvider.System)
     {
+    }
+
+    /// <param name="chatChannelId">The chat channel (<c>ChatChannelId</c>).</param>
+    /// <param name="systemChannelId">The <c>SystemChannelId</c> setting: 0 means the chat channel.</param>
+    /// <param name="time">The clock the queues measure line ages with. Tests pass a fake one.</param>
+    public DiscordOutbox(ulong chatChannelId, ulong systemChannelId, TimeProvider time)
+    {
+        ArgumentNullException.ThrowIfNull(time);
+        _chat = new DiscordSendQueue(time);
         ChatChannelId = chatChannelId;
         SystemChannelId = ResolveSystemChannelId(chatChannelId, systemChannelId);
 
@@ -38,7 +53,7 @@ public sealed class DiscordOutbox
         }
         else
         {
-            _system = new DiscordSendQueue();
+            _system = new DiscordSendQueue(time);
             ChannelIds = new[] { ChatChannelId, SystemChannelId };
         }
     }
@@ -54,7 +69,7 @@ public sealed class DiscordOutbox
     /// <summary>Every channel something can be queued for: the chat channel first, then the system channel if it differs.</summary>
     public IReadOnlyList<ulong> ChannelIds { get; }
 
-    /// <summary>True when nothing is waiting for any channel.</summary>
+    /// <summary>True when nothing is waiting for any channel, not even a "messages skipped" line.</summary>
     public bool IsEmpty => _chat.IsEmpty && _system.IsEmpty;
 
     /// <summary>The system channel for a <c>SystemChannelId</c> setting: itself, or the chat channel when it's 0.</summary>
