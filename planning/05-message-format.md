@@ -39,8 +39,13 @@ Posted to the **General** group as `EnumChatType.OthersMessage`, with th3essenti
 ```
 
 - `DiscordName` is the server nickname (`SocketGuildUser.DisplayName`), falling back to the global name, then the username. It is VTML-escaped.
-- Mentions resolve to `@Name`, `@Role` and `#channel`, then the whole text has `<` and `>` escaped. `&` is left as it is, because the game's chat shows `&amp;` literally (found in owner testing, decision #46).
-- Attachments-only messages show `[Attachments]`. Empty messages are ignored.
+- Mentions resolve to `@Name`, `@Role` and `#channel` (decision #41). A user's name is their Discord name: from the message's own mention data when Discord.Net has them as a server member, else from a non-blocking REST lookup of the member, else the mention data's global name or username, else `@unknown-user`. A role or channel that can't be found shows as `@unknown-role` or `#unknown-channel`.
+- Custom emoji `<:name:id>` and animated `<a:name:id>` show as `:name:`. Timestamps like `<t:1700000000:R>` and any other `<…>` stay as typed (decision #25).
+- Placeholders (decision #25): attachments only → `[Attachment]` or `[n Attachments]`; text plus attachments → text + ` [Attachment]` or ` [n Attachments]`; stickers only → `[Sticker]` (`[n Stickers]` for several, and after the text or attachments if there are any). Empty messages are ignored.
+- Newlines become spaces (one per line break), and the text is trimmed.
+- **Length cap:** the text after the name, placeholders included, is at most **500 characters**. The name isn't counted. If it's longer, the message's own text is cut and ends in `…`, and the placeholders stay after it. The cap counts what players see: it's applied before escaping, so it can't cut an `&lt;` in half.
+- Replies relay just their own text (not the message replied to). Edits and deletes are ignored: only new messages are relayed.
+- Last, the name and the whole text have `<` and `>` escaped, so resolved names and placeholders are escaped too. `&` is left as it is, because the game's chat shows `&amp;` literally (found in owner testing, decision #46).
 - Colour is configurable (`DiscordNameColor`).
 - Ignore our own bot, any webhook, and (configurable) other bots.
 
