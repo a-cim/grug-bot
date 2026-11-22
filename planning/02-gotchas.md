@@ -56,4 +56,4 @@ Things that will bite us, roughly ordered by how likely they are to cost a day. 
 ## Licensing
 
 33. **thebasics is GPL-2.0.** Read it for ideas, but **write our own** VTML stripping/unescaping. Don't paste from `VtmlUtils.cs` or any other thebasics file. th3essentials and Discord Bot are MIT, so adapting them is fine as long as `THIRD-PARTY-NOTICES.md` keeps their notices.
-34. **Bundled binaries need notices too.** Discord.Net and its transitive dependencies ship inside the mod zip, so their license texts go into `THIRD-PARTY-NOTICES.md` at packaging time (there's a TODO in that file).
+34. **Bundled binaries need notices too.** Discord.Net and its transitive dependencies ship inside the mod zip, so their license texts go into `THIRD-PARTY-NOTICES.md` (done for 1.0.0; update it when a dependency is added or upgraded).
