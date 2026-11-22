@@ -12,7 +12,8 @@ namespace GrugBot;
 /// <summary>
 /// Entry point of the grug-bot server mod. It loads or creates <c>ModConfig/grugbot.json</c>, works out
 /// where the Discord token comes from, says clearly when something essential is missing, and otherwise
-/// starts the Discord connection, the chat relay in both directions and the server's start and stop messages.
+/// starts the Discord connection, the chat relay in both directions, the server's start and stop messages
+/// and the temporal storm messages.
 /// Nothing in here may throw: a broken config must never stop the server from starting (01-architecture § Lifecycle).
 /// </summary>
 /// <remarks>
@@ -47,6 +48,7 @@ public sealed class GrugBotModSystem : ModSystem
     private DiscordConnection? _discord;
     private GeneralChatListener? _generalChat;
     private ChatChannelListener? _chatChannel;
+    private TemporalStormWatcher? _temporalStorms;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
@@ -125,11 +127,38 @@ public sealed class GrugBotModSystem : ModSystem
             log.Notification("Relay.ServerStartStop is off in {0}, so Discord isn't told when the server starts or stops.", GrugBotConfig.DisplayPath);
         }
 
+        StartTemporalStorms(api, log, _discord, config);
+
         // The game has no way to take these back. After the relay has stopped they find nothing and return.
         api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, OnRunGame);
         api.Event.ServerRunPhase(EnumServerRunPhase.Shutdown, OnShutdown);
 
         _discord.Start();
+    }
+
+    /// <summary>
+    /// Starts the temporal storm messages (#9) unless <c>Relay.TemporalStorms</c> is off (test plan 4.6). A failure here
+    /// turns off only the storm messages; the relay carries on.
+    /// </summary>
+    private void StartTemporalStorms(ICoreServerAPI api, ILogger log, DiscordConnection discord, GrugBotConfig config)
+    {
+        if (!config.Relay.TemporalStorms)
+        {
+            log.Notification("Relay.TemporalStorms is off in {0}, so Discord isn't told about temporal storms.", GrugBotConfig.DisplayPath);
+            return;
+        }
+
+        try
+        {
+            _temporalStorms = new TemporalStormWatcher(api, log, discord);
+            _temporalStorms.Subscribe();
+        }
+        catch (Exception e)
+        {
+            log.Error("grug-bot could not start its temporal storm messages; the rest of the relay carries on. Cause: {0}", e);
+            _temporalStorms?.Dispose();
+            _temporalStorms = null;
+        }
     }
 
     /// <summary>
@@ -204,6 +233,8 @@ public sealed class GrugBotModSystem : ModSystem
     /// </summary>
     private void StopRelay()
     {
+        _temporalStorms?.Dispose();
+        _temporalStorms = null;
         _chatChannel?.Dispose();
         _chatChannel = null;
         _generalChat?.Dispose();

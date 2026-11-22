@@ -21,6 +21,21 @@ public class SystemMessagesTests
     }
 
     [Fact]
+    public void Temporal_storm_lines_are_bold_italic_with_the_storm_emoji()
+    {
+        // 05-message-format, test plan 4.1.
+        Assert.Equal(
+            "***⛈️ A heavy temporal storm is approaching***",
+            SystemMessages.TemporalStorm("A heavy temporal storm is approaching"));
+    }
+
+    [Fact]
+    public void Temporal_storm_lines_escape_markdown_in_the_sentence()
+    {
+        Assert.Equal("***⛈️ A \\*strange\\* storm***", SystemMessages.TemporalStorm(" A *strange* storm "));
+    }
+
+    [Fact]
     public void Format_wraps_the_text_in_bold_italic_markers()
     {
         // Decision #10.

@@ -21,6 +21,13 @@ public static class SystemMessages
     public static string ServerShutdown { get; } = Format("⛔ Server shutdown");
 
     /// <summary>
+    /// A temporal storm phase (#9): <c>***⛈️ {sentence}***</c>, where the sentence is the game's own, translated
+    /// from the phase's lang key (05-message-format, test plan 4.1–4.4). It comes from the game's lang files, not a
+    /// player, but is Markdown-escaped anyway so a translation can't break the formatting.
+    /// </summary>
+    public static string TemporalStorm(string sentence) => Format("⛈️ " + DiscordMarkdown.Escape(sentence.Trim()));
+
+    /// <summary>
     /// Wraps <paramref name="text"/> in bold-italic markers: <c>***{text}***</c>. Surrounding whitespace is
     /// trimmed, since Discord doesn't format <c>*** text***</c>. Mentions are neutralised as a second line of
     /// defence (gotcha #8).
