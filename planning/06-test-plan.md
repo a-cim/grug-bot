@@ -99,3 +99,4 @@ Use `/nexttempstorm` (it has a "start next storm now" subcommand; check the exac
 |---|---|---|---|
 | 7.1 | Run without thebasics installed | Works; at most one info log line | ADR 0002 |
 | 7.2 | thebasics `UseGeneralChannelAsProximityChat: true` | Relay from General disabled, one clear warning | 01 Data flow, #14 |
+| 7.3 | thebasics installed, `UseGeneralChannelAsProximityChat: false` | Relay from General on; one info line naming thebasics' Proximity chat group ID (not 0); Proximity chat not relayed | #7, #14 |
