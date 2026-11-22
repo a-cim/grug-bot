@@ -2,7 +2,7 @@
 
 A lightweight bridge between **Vintage Story** server chat and **Discord**, in both directions. It's built to do just that, without the extra features of all-in-one server mods. It also works with the [thebasics](https://mods.vintagestory.at/thebasics) proximity chat mod.
 
-> **Status: 1.0.0.** General chat is relayed in both directions. Discord also hears when the server starts and stops, when players join and leave (the bot's status shows how many are online), when players die, and when a temporal storm approaches, starts and ends. See `planning/` for the design.
+> **Status: 1.0.0.** General chat is relayed in both directions. Discord also hears when the server starts and stops, when players join and leave (the bot's status shows how many are online), when players die, and when a temporal storm is approaching, is imminent and is waning. See `planning/` for the design.
 
 ## Target
 
@@ -27,7 +27,7 @@ A lightweight bridge between **Vintage Story** server chat and **Discord**, in b
 ### 2. Install the mod (server-side only)
 
 1. Drop `grugbot_<version>.zip` into the server's `Mods` folder and start the server once. This creates `ModConfig/grugbot.json`.
-2. Give grug-bot the bot token. The safest way is the `GRUGBOT_DISCORD_TOKEN` environment variable, which keeps the token out of the world folder; it wins over the config file when it's set. On Windows run `setx GRUGBOT_DISCORD_TOKEN "your-token"` and restart the server from a new terminal (or from the launcher after signing out and back in). On a hosted server without environment variables, put the token in `DiscordToken` instead.
+2. Give grug-bot the bot token. The safest way is the `GRUGBOT_DISCORD_TOKEN` environment variable, which keeps the token out of the server's files; it wins over the config file when it's set. On Windows run `setx GRUGBOT_DISCORD_TOKEN "your-token"` and restart the server from a new terminal (or from the launcher after signing out and back in). On a hosted server without environment variables, put the token in `DiscordToken` instead.
 3. Set `ChatChannelId` to the channel ID you copied, then restart.
 4. Optional: to post system messages (such as `✅ Server started`) in a channel of their own, set `SystemChannelId` to that channel's ID. `0` keeps them in the chat channel.
 
@@ -39,7 +39,7 @@ All settings live in `ModConfig/grugbot.json`. Changes take effect after a resta
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `ConfigVersion` | current | Used by grug-bot to upgrade the file. Don't change it. |
+| `ConfigVersion` | `1` | Used by grug-bot to upgrade the file. Don't change it. |
 | `DiscordToken` | `""` | The bot token, used only when `GRUGBOT_DISCORD_TOKEN` isn't set. Treat the file as secret if you fill this in. |
 | `ChatChannelId` | `0` | The Discord channel paired with General. `0` means not set up. |
 | `SystemChannelId` | `0` | The channel for system messages (start/stop, joins, leaves, deaths, storms). `0` uses the chat channel. |
@@ -51,9 +51,9 @@ All settings live in `ModConfig/grugbot.json`. Changes take effect after a resta
 | `Relay.Joins` / `Relay.Leaves` | `true` | Post when players join or leave. |
 | `Relay.Deaths` | `true` | Post player deaths (also off when the world's `disableDeathMessages` is on). |
 | `Relay.ServerStartStop` | `true` | Post when the server starts and stops. |
-| `Relay.TemporalStorms` | `true` | Post temporal storm warnings, starts and ends. |
+| `Relay.TemporalStorms` | `true` | Post when a temporal storm is approaching, is imminent and is waning. |
 
-With [thebasics](https://mods.vintagestory.at/thebasics) installed and its proximity chat on General, grug-bot stops relaying General to Discord (so nearby-only chat stays in game) and says so in the log.
+With [thebasics](https://mods.vintagestory.at/thebasics) installed and its Proximity chat group on General, grug-bot stops relaying General to Discord (so nearby-only chat stays in game) and says so in the log. System messages and Discord → Game keep working.
 
 ## Building
 
