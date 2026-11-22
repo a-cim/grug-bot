@@ -65,6 +65,32 @@ public static class SystemMessages
         Format("📤 Player " + EscapeName(shownName) + " disconnected (" + count + ")");
 
     /// <summary>
+    /// A player died (#8): <c>***{sentence}***</c>, where the sentence is the game's own death message, such as
+    /// <c>***Player Ugg got killed by a nightmare drifter***</c> (05-message-format § Deaths, test plan 3.4). Like other
+    /// text from the game it is turned into plain text (VTML stripped, entities unescaped) and Markdown-escaped, so it
+    /// reads as the in-game line.
+    /// </summary>
+    /// <exception cref="ArgumentException">Nothing is left of the sentence as plain text; <see cref="DeathLine.For"/> falls back instead.</exception>
+    public static string PlayerDied(string sentence) => Format(DiscordMarkdown.Escape(Vtml.ToPlainText(sentence).Trim()));
+
+    /// <summary>
+    /// Our own death sentence, for when the game's can't be had (gotcha #19): <c>***Player Ugg died***</c>, or
+    /// <c>***Player Ugg was killed by Nightmare drifter***</c> when the entity that caused the death is known. The
+    /// wording follows the old Discord Bot mod's fallback.
+    /// </summary>
+    /// <param name="shownName">The name other players see for the player who died (decision #36). It is escaped here.</param>
+    /// <param name="killerName">
+    /// The name of the entity that caused the death, or <c>null</c> (or blank) when there is none or it's the player
+    /// themselves. It is escaped here.
+    /// </param>
+    public static string PlayerDiedFallback(string shownName, string? killerName)
+    {
+        string killer = killerName is null ? "" : Vtml.ToPlainText(killerName).Trim();
+        string what = killer.Length == 0 ? " died" : " was killed by " + DiscordMarkdown.Escape(killer);
+        return Format("Player " + EscapeName(shownName) + what);
+    }
+
+    /// <summary>
     /// A shown name as plain text with its Markdown escaped, as in chat lines, so a name like <c>Grug_Ugg</c>
     /// can't break the bold-italic markers.
     /// </summary>

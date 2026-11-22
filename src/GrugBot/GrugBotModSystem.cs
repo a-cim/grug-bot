@@ -12,8 +12,8 @@ namespace GrugBot;
 /// <summary>
 /// Entry point of the grug-bot server mod. It loads or creates <c>ModConfig/grugbot.json</c>, works out
 /// where the Discord token comes from, says clearly when something essential is missing, and otherwise
-/// starts the Discord connection, the chat relay in both directions, the server's start and stop messages
-/// and the temporal storm messages.
+/// starts the Discord connection, the chat relay in both directions, the server's start and stop messages,
+/// the temporal storm messages and the death messages.
 /// Nothing in here may throw: a broken config must never stop the server from starting (01-architecture § Lifecycle).
 /// </summary>
 /// <remarks>
@@ -50,6 +50,7 @@ public sealed class GrugBotModSystem : ModSystem
     private ChatChannelListener? _chatChannel;
     private JoinLeaveListener? _joinsLeaves;
     private TemporalStormWatcher? _temporalStorms;
+    private DeathListener? _deaths;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
@@ -133,6 +134,17 @@ public sealed class GrugBotModSystem : ModSystem
         _joinsLeaves.Subscribe();
 
         StartTemporalStorms(api, log, _discord, config);
+
+        // Off stops the death lines only (test plan 3.8).
+        if (config.Relay.Deaths)
+        {
+            _deaths = new DeathListener(api, log, _discord);
+            _deaths.Subscribe();
+        }
+        else
+        {
+            log.Notification("Relay.Deaths is off in {0}, so Discord isn't told when players die.", GrugBotConfig.DisplayPath);
+        }
 
         // The game has no way to take these back. After the relay has stopped they find nothing and return.
         api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, OnRunGame);
@@ -240,6 +252,8 @@ public sealed class GrugBotModSystem : ModSystem
     {
         _temporalStorms?.Dispose();
         _temporalStorms = null;
+        _deaths?.Dispose();
+        _deaths = null;
         _joinsLeaves?.Dispose();
         _joinsLeaves = null;
         _chatChannel?.Dispose();
