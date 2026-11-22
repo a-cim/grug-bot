@@ -1,4 +1,5 @@
 using System;
+using GrugBot.Core.Players;
 
 namespace GrugBot.Core.Formatting;
 
@@ -47,4 +48,25 @@ public static class SystemMessages
 
         return "***" + DiscordMentions.Neutralise(trimmed) + "***";
     }
+
+    /// <summary>
+    /// A player is now in game: <c>***📥 Player Ugg connected (2/10)***</c>, counting the joining player (test plan 3.1).
+    /// </summary>
+    /// <param name="shownName">The name other players see for the player (decision #36). It is escaped here.</param>
+    public static string PlayerConnected(string shownName, PlayerCount count) =>
+        Format("📥 Player " + EscapeName(shownName) + " connected (" + count + ")");
+
+    /// <summary>
+    /// A player left: <c>***📤 Player Grug disconnected (1/10)***</c>, with the leaving player already counted out
+    /// (gotcha #17, test plan 3.2).
+    /// </summary>
+    /// <param name="shownName">The name other players see for the player (decision #36). It is escaped here.</param>
+    public static string PlayerDisconnected(string shownName, PlayerCount count) =>
+        Format("📤 Player " + EscapeName(shownName) + " disconnected (" + count + ")");
+
+    /// <summary>
+    /// A shown name as plain text with its Markdown escaped, as in chat lines, so a name like <c>Grug_Ugg</c>
+    /// can't break the bold-italic markers.
+    /// </summary>
+    private static string EscapeName(string shownName) => DiscordMarkdown.Escape(Vtml.ToPlainText(shownName).Trim());
 }

@@ -48,6 +48,7 @@ public sealed class GrugBotModSystem : ModSystem
     private DiscordConnection? _discord;
     private GeneralChatListener? _generalChat;
     private ChatChannelListener? _chatChannel;
+    private JoinLeaveListener? _joinsLeaves;
     private TemporalStormWatcher? _temporalStorms;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
@@ -126,6 +127,10 @@ public sealed class GrugBotModSystem : ModSystem
         {
             log.Notification("Relay.ServerStartStop is off in {0}, so Discord isn't told when the server starts or stops.", GrugBotConfig.DisplayPath);
         }
+
+        // Relay.Joins and Relay.Leaves switch their lines independently; the presence is always kept up to date (#7).
+        _joinsLeaves = new JoinLeaveListener(api, log, _discord, _runState, config.Relay);
+        _joinsLeaves.Subscribe();
 
         StartTemporalStorms(api, log, _discord, config);
 
@@ -235,6 +240,8 @@ public sealed class GrugBotModSystem : ModSystem
     {
         _temporalStorms?.Dispose();
         _temporalStorms = null;
+        _joinsLeaves?.Dispose();
+        _joinsLeaves = null;
         _chatChannel?.Dispose();
         _chatChannel = null;
         _generalChat?.Dispose();
