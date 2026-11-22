@@ -18,9 +18,9 @@ public sealed class GrugBotConfig
     /// <summary>
     /// The config format this build writes (decision #28). Bump it whenever a setting is added, renamed or removed:
     /// files already at the current version are never rewritten, so without a bump existing files never get the change
-    /// (issue #14). A test in <c>GrugBotConfigTests</c> fails until you do.
+    /// (issue #14). A test in <c>GrugBotConfigTests</c> fails until you do. Version 2 added <c>Relay.DeathCount</c> (#32).
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public const string DefaultDiscordNameColor = "#7289DA";
 

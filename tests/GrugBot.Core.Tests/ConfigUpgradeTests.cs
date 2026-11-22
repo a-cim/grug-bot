@@ -90,6 +90,93 @@ public class ConfigUpgradeTests
             name => Assert.False(relay[name]!.Value<bool>()));
     }
 
+    /// <summary>
+    /// A file as a version-1 build wrote it, every value changed from its default so a reset would show, plus a field
+    /// no build knows. Version 2 added <c>Relay.DeathCount</c> (#32).
+    /// </summary>
+    private const string Version1File = $$"""
+        {
+          "ConfigVersion": 1,
+          "DiscordToken": "{{SecretToken}}",
+          "ChatChannelId": 111111111111111111,
+          "SystemChannelId": 222222222222222222,
+          "DiscordNameColor": "#FF0000",
+          "IgnoreOtherBots": false,
+          "IgnoredDiscordUserIds": [ 333, 444 ],
+          "EscapeMarkdown": true,
+          "Relay": {
+            "DiscordToGame": false,
+            "Joins": false,
+            "Leaves": false,
+            "Deaths": false,
+            "ServerStartStop": false,
+            "TemporalStorms": false
+          },
+          "MyNote": "hi"
+        }
+        """;
+
+    [Fact]
+    public void A_v1_file_is_upgraded_to_v2_with_DeathCount_off_and_every_value_kept()
+    {
+        ConfigUpgradeResult result = ConfigUpgrade.Decide(Version1File);
+
+        Assert.Equal(ConfigUpgradeAction.Upgraded, result.Action);
+        Assert.Equal(1, result.FileVersion);
+        Assert.Equal(2, result.CurrentVersion);
+        JObject json = Parse(result.UpgradedJson);
+        Assert.Equal(2, json["ConfigVersion"]!.Value<int>());
+        Assert.Equal(SecretToken, json["DiscordToken"]!.Value<string>());
+        Assert.Equal(111111111111111111UL, json["ChatChannelId"]!.Value<ulong>());
+        Assert.Equal(222222222222222222UL, json["SystemChannelId"]!.Value<ulong>());
+        Assert.Equal("#FF0000", json["DiscordNameColor"]!.Value<string>());
+        Assert.False(json["IgnoreOtherBots"]!.Value<bool>());
+        Assert.Equal(new[] { 333UL, 444UL }, ((JArray)json["IgnoredDiscordUserIds"]!).Select(id => id.Value<ulong>()));
+        Assert.True(json["EscapeMarkdown"]!.Value<bool>());
+        Assert.Equal("hi", json["MyNote"]!.Value<string>());
+
+        var relay = (JObject)json["Relay"]!;
+        Assert.Equal(
+            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "DeathCount", "ServerStartStop", "TemporalStorms" },
+            relay.Properties().Select(p => p.Name));
+        Assert.False(relay["DeathCount"]!.Value<bool>());
+        Assert.All(
+            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "ServerStartStop", "TemporalStorms" },
+            name => Assert.False(relay[name]!.Value<bool>()));
+    }
+
+    [Fact]
+    public void The_game_reads_a_v1_file_upgraded_to_v2_with_DeathCount_off()
+    {
+        var config = JsonConvert.DeserializeObject<GrugBotConfig>(ConfigUpgrade.Decide(Version1File).UpgradedJson!)!;
+
+        Assert.Equal(2, config.ConfigVersion);
+        Assert.False(config.Relay.DeathCount);
+        Assert.False(config.Relay.Deaths);
+        Assert.Equal(SecretToken, config.DiscordToken);
+        Assert.Equal(new[] { 333UL, 444UL }, config.IgnoredDiscordUserIds);
+    }
+
+    [Fact]
+    public void A_v1_file_that_already_turns_DeathCount_on_keeps_it_on()
+    {
+        // Someone added the setting by hand before upgrading.
+        JObject json = Parse(ConfigUpgrade.Decide("""{ "ConfigVersion": 1, "Relay": { "DeathCount": true } }""").UpgradedJson);
+
+        Assert.True(json["Relay"]!["DeathCount"]!.Value<bool>());
+        Assert.True(json["Relay"]!["Deaths"]!.Value<bool>());
+    }
+
+    [Fact]
+    public void A_v2_file_is_kept_as_it_is()
+    {
+        ConfigUpgradeResult result = ConfigUpgrade.Decide("""{ "ConfigVersion": 2, "Relay": { "DeathCount": true } }""");
+
+        Assert.Equal(ConfigUpgradeAction.KeepAsIs, result.Action);
+        Assert.Equal(2, result.FileVersion);
+        Assert.Null(result.UpgradedJson);
+    }
+
     [Fact]
     public void The_game_reads_the_upgraded_file_with_the_same_values()
     {
@@ -135,7 +222,7 @@ public class ConfigUpgradeTests
             },
             json.Properties().Select(p => p.Name));
         Assert.Equal(
-            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "ServerStartStop", "TemporalStorms", "Typo" },
+            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "DeathCount", "ServerStartStop", "TemporalStorms", "Typo" },
             ((JObject)json["Relay"]!).Properties().Select(p => p.Name));
     }
 

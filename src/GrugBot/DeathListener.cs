@@ -18,6 +18,14 @@ namespace GrugBot;
 /// <c>Player Ugg died</c> instead, and one warning is logged for the run, not one per death (gotcha #19).
 /// </para>
 /// <para>
+/// With <c>Relay.DeathCount</c> on, the line ends with the player's death count from thebasics' stats,
+/// <c>This is death number 7.</c> (#32, decision #52, test plan 3.9). thebasics adds this death to its count in its own
+/// <c>PlayerDeath</c> handler, which may run before or after this one, so the count is read on the game thread a tick
+/// later and the line is queued only then; it still posts exactly once. The sentence is worked out at once, while the game
+/// still has everything it needs. A missing or 0 count means no suffix; a count that can't be read logs one warning for the
+/// run and the line posts without it. With the setting off, the line is queued at once, as before.
+/// </para>
+/// <para>
 /// Only created when <c>Relay.Deaths</c> is on (test plan 3.8). Nothing is posted while the world config
 /// <c>disableDeathMessages</c> is true, as the game shows none either; that is read at each death, so changing it in a running
 /// world takes effect at once.
@@ -28,22 +36,36 @@ public sealed class DeathListener : IDisposable
 {
     private const string DisableDeathMessagesKey = "disableDeathMessages";
 
+    /// <summary>
+    /// The player mod data key under which thebasics keeps the death count <c>/playerstats</c> shows: an <c>int</c> written
+    /// with <c>SerializerUtil</c>. Read through the public player API only; no thebasics code (ADR 0002).
+    /// </summary>
+    private const string TheBasicsDeathCountKey = "BASIC_COUNT_DEATHS";
+
+    /// <summary>The category the game's frame profiler shows the tick-later count read under.</summary>
+    private const string DeathCountTaskCode = "grugbot-deathcount";
+
     private readonly ICoreServerAPI _api;
     private readonly ILogger _log;
     private readonly DiscordConnection _discord;
+    private readonly bool _deathCount;
 
     private VanillaDeathMessage? _vanilla;
     private bool _lookedForVanilla;
     private bool _warnedFallback;
+    private bool _warnedDeathCount;
+    private bool _toldNoDeathCount;
     private bool _toldDisabled;
     private bool _subscribed;
     private bool _disposed;
 
-    public DeathListener(ICoreServerAPI api, ILogger log, DiscordConnection discord)
+    /// <param name="deathCount"><c>Relay.DeathCount</c>: end each line with the player's death count from thebasics.</param>
+    public DeathListener(ICoreServerAPI api, ILogger log, DiscordConnection discord, bool deathCount)
     {
         _api = api;
         _log = log;
         _discord = discord;
+        _deathCount = deathCount;
     }
 
     /// <summary>Subscribes to the game's death event. Called once, from <c>StartServerSide</c>, never on Ready (gotcha #11).</summary>
@@ -96,19 +118,111 @@ public sealed class DeathListener : IDisposable
                 return;
             }
 
+            // Worked out now: a tick later the game may no longer have the player's client or the damage source.
             string shownName = GeneralChatListener.ShownName(byPlayer);
-            DeathLine line = DeathLine.For(VanillaSentence(byPlayer, damageSource), shownName, KillerName(byPlayer, damageSource));
-            if (line.IsFallback)
-            {
-                WarnFallbackOnce("the game gave no death sentence");
-            }
+            string? sentence = VanillaSentence(byPlayer, damageSource);
+            string? killerName = KillerName(byPlayer, damageSource);
 
-            _discord.EnqueueSystem(line.Message);
+            if (!_deathCount || !PostAfterThisTick(byPlayer, sentence, shownName, killerName))
+            {
+                Post(sentence, shownName, killerName, 0);
+            }
         }
         catch (Exception e)
         {
             _log.Error("grug-bot could not post a death message: {0}", e);
         }
+    }
+
+    /// <summary>
+    /// Queues the line, with the death count, for the game thread's next round of tasks, which runs after every
+    /// <c>PlayerDeath</c> handler, thebasics' included. Returns false (after warning once) if that couldn't be arranged,
+    /// so the caller posts the line at once without the count.
+    /// </summary>
+    private bool PostAfterThisTick(IServerPlayer byPlayer, string? sentence, string shownName, string? killerName)
+    {
+        try
+        {
+            _api.Event.EnqueueMainThreadTask(() => PostWithDeathCount(byPlayer, sentence, shownName, killerName), DeathCountTaskCode);
+            return true;
+        }
+        catch (Exception e)
+        {
+            WarnDeathCountOnce(e.GetType().Name + ": " + e.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Runs on the game thread a tick after the death. Nothing here throws into the game.</summary>
+    private void PostWithDeathCount(IServerPlayer byPlayer, string? sentence, string shownName, string? killerName)
+    {
+        try
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            Post(sentence, shownName, killerName, DeathCount(byPlayer));
+        }
+        catch (Exception e)
+        {
+            _log.Error("grug-bot could not post a death message: {0}", e);
+        }
+    }
+
+    /// <summary>Builds the line (with the count when <paramref name="deathNumber"/> is 1 or more) and queues it.</summary>
+    private void Post(string? sentence, string shownName, string? killerName, int deathNumber)
+    {
+        DeathLine line = DeathLine.For(sentence, shownName, killerName, deathNumber);
+        if (line.IsFallback)
+        {
+            WarnFallbackOnce("the game gave no death sentence");
+        }
+
+        _discord.EnqueueSystem(line.Message);
+    }
+
+    /// <summary>
+    /// The player's death count as thebasics keeps it, this death included, or 0 when there is none (thebasics isn't
+    /// installed, or its player stats or Deaths stat are off). The count is kept with
+    /// the player's saved data, so it can still be read if they left during the tick. Anything that goes wrong reading it
+    /// warns once per run and gives 0. Never throws.
+    /// </summary>
+    private int DeathCount(IServerPlayer byPlayer)
+    {
+        int count;
+        try
+        {
+            byte[]? data = byPlayer?.GetModdata(TheBasicsDeathCountKey);
+            count = data is null ? 0 : Vintagestory.API.Util.SerializerUtil.Deserialize<int>(data, 0);
+        }
+        catch (Exception e)
+        {
+            WarnDeathCountOnce(e.GetType().Name + ": " + e.Message);
+            return 0;
+        }
+
+        if (count < 1 && !_toldNoDeathCount)
+        {
+            _toldNoDeathCount = true;
+            _log.Notification(
+                "Relay.DeathCount is on, but thebasics has no death count for a player who died, so their death line has no count."
+                + " Is thebasics installed, with its player stats and Deaths stat on? Shown once per run.");
+        }
+
+        return count;
+    }
+
+    private void WarnDeathCountOnce(string reason)
+    {
+        if (_warnedDeathCount)
+        {
+            return;
+        }
+
+        _warnedDeathCount = true;
+        _log.Warning("grug-bot could not read the player's death count from thebasics ({0}), so death lines go without it. Shown once per run.", reason);
     }
 
     /// <summary>

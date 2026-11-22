@@ -88,4 +88,76 @@ public class DeathLineTests
 
         Assert.Equal(first.Message, second.Message);
     }
+
+    [Fact]
+    public void The_death_count_ends_the_game_sentence_inside_the_markers()
+    {
+        // #32, 05-message-format § Deaths, test plan 3.9.
+        DeathLine line = DeathLine.For("Player Ugg got pancaked", "Ugg", null, deathNumber: 7);
+
+        Assert.Equal("***Player Ugg got pancaked. This is death number 7.***", line.Message);
+        Assert.False(line.IsFallback);
+    }
+
+    [Theory]
+    [InlineData("Player Ugg fell to their death.", "***Player Ugg fell to their death. This is death number 2.***")]
+    [InlineData("Player Ugg exploded!", "***Player Ugg exploded! This is death number 2.***")]
+    [InlineData("Player Ugg drowned?", "***Player Ugg drowned? This is death number 2.***")]
+    [InlineData("Player Ugg got killed by a nightmare drifter", "***Player Ugg got killed by a nightmare drifter. This is death number 2.***")]
+    [InlineData("Player Ugg drowned.  \n", "***Player Ugg drowned. This is death number 2.***")]
+    [InlineData("Player Ugg drowned \t", "***Player Ugg drowned. This is death number 2.***")]
+    [InlineData("<font color=\"#f00\">Player Ugg drowned.</font> ", "***Player Ugg drowned. This is death number 2.***")]
+    [InlineData("Player Ugg was eaten by Grug**", @"***Player Ugg was eaten by Grug\*\*. This is death number 2.***")]
+    public void A_full_stop_is_added_only_when_the_sentence_has_no_end_punctuation(string sentence, string expected)
+    {
+        Assert.Equal(expected, DeathLine.For(sentence, "Ugg", null, deathNumber: 2).Message);
+    }
+
+    [Fact]
+    public void The_fallback_ends_with_the_death_count_too()
+    {
+        Assert.Equal("***Player Ugg died. This is death number 1.***", DeathLine.For(null, "Ugg", null, deathNumber: 1).Message);
+        Assert.Equal(
+            "***Player Ugg was killed by Nightmare drifter. This is death number 3.***",
+            DeathLine.For("  ", "Ugg", "Nightmare drifter", deathNumber: 3).Message);
+        Assert.True(DeathLine.For(null, "Ugg", null, deathNumber: 1).IsFallback);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    public void No_count_means_no_suffix(int deathNumber)
+    {
+        // thebasics not installed, not counting deaths, or the count unreadable: the line is as before.
+        Assert.Equal("***Player Ugg got pancaked***", DeathLine.For("Player Ugg got pancaked", "Ugg", null, deathNumber).Message);
+        Assert.Equal("***Player Ugg died***", DeathLine.For(null, "Ugg", null, deathNumber).Message);
+    }
+
+    [Fact]
+    public void Without_a_count_the_line_is_unchanged()
+    {
+        Assert.Equal(DeathLine.For("Player Ugg got pancaked", "Ugg", null, 0), DeathLine.For("Player Ugg got pancaked", "Ugg", null));
+        Assert.Equal("***Player Ugg got pancaked***", SystemMessages.PlayerDied("Player Ugg got pancaked"));
+        Assert.Equal("***Player Ugg died***", SystemMessages.PlayerDiedFallback("Ugg", null));
+    }
+
+    [Theory]
+    [InlineData(1, "1")]
+    [InlineData(10, "10")]
+    [InlineData(1234567, "1234567")]
+    [InlineData(int.MaxValue, "2147483647")]
+    public void The_count_is_written_as_plain_digits(int deathNumber, string digits)
+    {
+        Assert.Equal(
+            "***Player Ugg drowned. This is death number " + digits + ".***",
+            SystemMessages.PlayerDied("Player Ugg drowned", deathNumber));
+    }
+
+    [Fact]
+    public void A_blank_game_sentence_still_falls_back_with_a_count()
+    {
+        Assert.Throws<ArgumentException>(() => SystemMessages.PlayerDied("  ", 4));
+        Assert.Equal("***Player Ugg died. This is death number 4.***", DeathLine.For("<br>", "Ugg", null, 4).Message);
+    }
 }

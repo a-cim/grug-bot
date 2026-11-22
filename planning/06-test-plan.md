@@ -24,6 +24,7 @@ Use made-up names in any notes or screenshots kept in the repo (decision #31).
 | 1.6 | `ChatChannelId` points at a channel the bot can't see | Clear error naming the channel ID; no crash | |
 | 1.7 | Force a gateway reconnect (drop network briefly) | No second "Server started"; no doubled relays | gotcha #11 |
 | 1.8 | Check the zip contents | No `VintagestoryAPI.dll`, `Newtonsoft.Json.dll`, `0Harmony.dll`, `protobuf-net.dll`; `THIRD-PARTY-NOTICES.md` included | gotcha #3, #15 |
+| 1.9 | Start with a `grugbot.json` at `ConfigVersion: 1` | Saved back at `ConfigVersion: 2` with `Relay.DeathCount: false` added after `Relay.Deaths`; every other value (token, channel IDs, `Relay.*`) unchanged; one "Upgraded … from config version 1 to 2" log line | #28, #52 |
 
 ## 2. Game → Discord: chat
 
@@ -51,6 +52,9 @@ Use made-up names in any notes or screenshots kept in the repo (decision #31).
 | 3.6 | Set `SystemChannelId` to `#system` | System messages go there; chat stays in `#chat` | 05 |
 | 3.7 | Join and leave several times quickly | Presence shows the right count, updated once things settle (~5 s) | #26 |
 | 3.8 | Turn each `Relay.*` flag off in turn | That message type stops; the others continue | #28 |
+| 3.9 🧪 | With thebasics counting deaths, set `Relay.DeathCount: true`, restart, die (`/kill`), then die again | `***{sentence}. This is death number n.***`, n matching `/playerstats`, then n+1; a full stop is added only when the sentence has none (e.g. a creature kill); after `/clearstats`, the next death says `number 1`; still one line per death | #52 |
+| 3.10 | Default config (`Relay.DeathCount` absent or `false`), die | Line as in 3.4, no count | #52 |
+| 3.11 | `Relay.DeathCount: true` without thebasics (or with its Deaths stat off), die | Line as in 3.4, no count; at most one info log line saying there is no count | #52 |
 
 ## 4. Temporal storms (with Rustwall)
 

@@ -29,6 +29,7 @@ A lightweight bridge between **Vintage Story** server chat and **Discord**, in b
 1. Drop `grugbot_<version>.zip` into the server's `Mods` folder and start the server once. This creates `ModConfig/grugbot.json`.
 2. Fill in `DiscordToken` and `ChatChannelId`, then restart.
 3. Optional: to post system messages (such as `✅ Server started`) in a channel of their own, set `SystemChannelId` to that channel's ID. `0` keeps them in the chat channel.
+4. Optional: if the server runs thebasics, set `Relay.DeathCount` to `true` to end each death line with the player's death count from `/playerstats`, such as `This is death number 7.` It's off by default.
 
 ## Building
 

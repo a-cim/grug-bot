@@ -135,10 +135,10 @@ public sealed class GrugBotModSystem : ModSystem
 
         StartTemporalStorms(api, log, _discord, config);
 
-        // Off stops the death lines only (test plan 3.8).
+        // Off stops the death lines only (test plan 3.8). Relay.DeathCount (off by default) adds thebasics' count to them (#32).
         if (config.Relay.Deaths)
         {
-            _deaths = new DeathListener(api, log, _discord);
+            _deaths = new DeathListener(api, log, _discord, config.Relay.DeathCount);
             _deaths.Subscribe();
         }
         else

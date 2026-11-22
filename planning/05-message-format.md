@@ -12,6 +12,7 @@ Everything posts as a **plain bot message** in **one channel** (decision #10). T
 | Player joined | `***📥 Player {IGN} connected ({online}/{max})***` | ***📥 Player Ugg connected (2/10)*** |
 | Player left | `***📤 Player {IGN} disconnected ({online}/{max})***` | ***📤 Player Grug disconnected (1/10)*** |
 | Death | `***{vanilla death message}***` | ***Player Ugg got killed by a nightmare drifter*** |
+| Death, with `Relay.DeathCount` | `***{vanilla death message}. This is death number {n}.***` | ***Player Ugg got pancaked. This is death number 7.*** |
 | Storm approaching | `***⛈️ A {light\|medium\|heavy} temporal storm is approaching***` | ***⛈️ A heavy temporal storm is approaching*** |
 | Storm imminent | `***⛈️ A {strength} temporal storm is imminent***` | |
 | Storm waning | `***⛈️ The temporal storm seems to be waning***` | |
@@ -25,6 +26,7 @@ Notes:
 - **Use literal Unicode emoji** (📥 📤 ⛈️ ✅ ⛔), not th3essentials' `:inbox_tray:` shortcodes. Shortcodes rendered for th3essentials, but literal characters don't depend on Discord expanding them.
 - **`{online}/{max}`:** online = admitted players (minus one on disconnect, because the leaving player is still counted). max = `sapi.Server.Config.MaxClients`.
 - **Deaths:** use vanilla's own sentence, taken via reflection from `ServerSystemEntitySimulation.GetDeathMessage` as th3essentials does. If that breaks, fall back to our own `Player {IGN} died` / `… was killed by {entity}` (the old Discord Bot's `EnumDamageSource` switch). Skip entirely when the world config `disableDeathMessages` is true. *Two identical death lines in a row can be legitimate (a player died twice quickly), so don't de-duplicate.*
+- **Death count** (#32, decision #52): with `Relay.DeathCount: true` (default `false`), each death line, vanilla sentence or fallback, ends with ` This is death number {n}.`, where n is thebasics' death count for that player, the one `/playerstats` shows. A full stop goes after the sentence first unless it already ends in `.`, `!` or `?`. The count is read a tick after the death, once thebasics has counted it. No suffix when thebasics isn't installed, isn't counting deaths, or the count is missing, 0 or can't be read (one warning per run for that last case).
 - **Storm wording:** use the game's own `Lang.Get(...)` strings so it matches the in-game text. Approaching, imminent and waning each post once per storm, using th3essentials' thresholds (see 01-architecture). Waning always posts, even if the storm ends early (#43).
 - **Bot presence:** `players: {online}/{max}`, updated on join and leave. Free, and it matches th3essentials. *(As built, #7: it's the bot's custom status, so it reads `players: 2/10` with no "Playing" in front; th3essentials' `SetGameAsync` showed "Playing players: 2/10". It's set at startup, 5 s after the last join or leave, and again after a reconnect, and is always on: `Relay.Joins` and `Relay.Leaves` switch only the lines.)*
 - **Batching:** lines queued within ~1 s are joined with newlines into one Discord message (≤2000 chars), as th3essentials did. Discord would group them under one header anyway, so the screenshot looks the same either way.

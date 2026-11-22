@@ -91,8 +91,15 @@ public static class SystemMessages
     /// text from the game it is turned into plain text (VTML stripped, entities unescaped) and Markdown-escaped, so it
     /// reads as the in-game line.
     /// </summary>
+    /// <param name="sentence">The game's death message.</param>
+    /// <param name="deathNumber">
+    /// How many times the player has died, this death included (#32). With 1 or more the line reads like
+    /// <c>***Player Ugg drowned. This is death number 7.***</c>, adding the full stop only when the sentence doesn't already end in
+    /// <c>.</c>, <c>!</c> or <c>?</c>. 0 or less adds nothing.
+    /// </param>
     /// <exception cref="ArgumentException">Nothing is left of the sentence as plain text; <see cref="DeathLine.For"/> falls back instead.</exception>
-    public static string PlayerDied(string sentence) => Format(DiscordMarkdown.Escape(Vtml.ToPlainText(sentence).Trim()));
+    public static string PlayerDied(string sentence, int deathNumber = 0) =>
+        Format(WithDeathNumber(DiscordMarkdown.Escape(Vtml.ToPlainText(sentence).Trim()), deathNumber));
 
     /// <summary>
     /// Our own death sentence, for when the game's can't be had (gotcha #19): <c>***Player Ugg died***</c>, or
@@ -104,11 +111,31 @@ public static class SystemMessages
     /// The name of the entity that caused the death, or <c>null</c> (or blank) when there is none or it's the player
     /// themselves. It is escaped here.
     /// </param>
-    public static string PlayerDiedFallback(string shownName, string? killerName)
+    /// <param name="deathNumber">How many times the player has died, as for <see cref="PlayerDied"/>; 0 or less for no count.</param>
+    public static string PlayerDiedFallback(string shownName, string? killerName, int deathNumber = 0)
     {
         string killer = killerName is null ? "" : Vtml.ToPlainText(killerName).Trim();
         string what = killer.Length == 0 ? " died" : " was killed by " + DiscordMarkdown.Escape(killer);
-        return Format("Player " + EscapeName(shownName) + what);
+        return Format(WithDeathNumber("Player " + EscapeName(shownName) + what, deathNumber));
+    }
+
+    /// <summary>
+    /// Ends a death sentence with the player's death count (#32, decision #52): <c>Player Ugg got pancaked</c> becomes
+    /// <c>Player Ugg got pancaked. This is death number 7.</c> A full stop is added first only when the sentence doesn't
+    /// already end in <c>.</c>, <c>!</c> or <c>?</c>, ignoring trailing whitespace. A count of 0 or less (thebasics isn't
+    /// installed, isn't counting deaths, or the count couldn't be read) and a blank sentence are returned unchanged.
+    /// </summary>
+    private static string WithDeathNumber(string sentence, int deathNumber)
+    {
+        string trimmed = sentence.TrimEnd();
+        if (deathNumber < 1 || trimmed.Length == 0)
+        {
+            return sentence;
+        }
+
+        char last = trimmed[trimmed.Length - 1];
+        string stop = last is '.' or '!' or '?' ? "" : ".";
+        return trimmed + stop + " This is death number " + deathNumber.ToString(CultureInfo.InvariantCulture) + ".";
     }
 
     /// <summary>

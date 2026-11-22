@@ -24,6 +24,13 @@ public class GrugBotConfigTests
             "Relay.DiscordToGame", "Relay.Joins", "Relay.Leaves", "Relay.Deaths", "Relay.ServerStartStop",
             "Relay.TemporalStorms",
         },
+        [2] = new[]
+        {
+            "ConfigVersion", "DiscordToken", "ChatChannelId", "SystemChannelId", "DiscordNameColor",
+            "IgnoreOtherBots", "IgnoredDiscordUserIds", "EscapeMarkdown",
+            "Relay.DiscordToGame", "Relay.Joins", "Relay.Leaves", "Relay.Deaths", "Relay.DeathCount",
+            "Relay.ServerStartStop", "Relay.TemporalStorms",
+        },
     };
 
     [Fact]
@@ -50,7 +57,7 @@ public class GrugBotConfigTests
     {
         var config = new GrugBotConfig();
 
-        Assert.Equal(1, config.ConfigVersion);
+        Assert.Equal(2, config.ConfigVersion);
         Assert.Equal("", config.DiscordToken);
         Assert.Equal(0UL, config.ChatChannelId);
         Assert.Equal(0UL, config.SystemChannelId);
@@ -62,6 +69,7 @@ public class GrugBotConfigTests
         Assert.True(config.Relay.Joins);
         Assert.True(config.Relay.Leaves);
         Assert.True(config.Relay.Deaths);
+        Assert.False(config.Relay.DeathCount);
         Assert.True(config.Relay.ServerStartStop);
         Assert.True(config.Relay.TemporalStorms);
     }
@@ -80,7 +88,7 @@ public class GrugBotConfigTests
             json.Properties().Select(p => p.Name));
 
         Assert.Equal(
-            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "ServerStartStop", "TemporalStorms" },
+            new[] { "DiscordToGame", "Joins", "Leaves", "Deaths", "DeathCount", "ServerStartStop", "TemporalStorms" },
             ((JObject)json["Relay"]!).Properties().Select(p => p.Name));
     }
 
@@ -95,6 +103,7 @@ public class GrugBotConfigTests
         Assert.Equal("#7289DA", config.DiscordNameColor);
         Assert.False(config.Relay.Deaths);
         Assert.True(config.Relay.Joins);
+        Assert.False(config.Relay.DeathCount);
     }
 
     [Fact]

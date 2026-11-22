@@ -78,7 +78,7 @@ grug-bot/
 
 ```jsonc
 {
-  "ConfigVersion": 1,
+  "ConfigVersion": 2,
   "DiscordToken": "",            // ⚠ secret; GRUGBOT_DISCORD_TOKEN env var wins if set (#27)
   "ChatChannelId": 0,            // General <-> this channel
   "SystemChannelId": 0,          // 0 = use ChatChannelId (th3essentials' default, matches the screenshot)
@@ -86,11 +86,11 @@ grug-bot/
   "IgnoreOtherBots": true,
   "IgnoredDiscordUserIds": [],
   "EscapeMarkdown": false,
-  "Relay": { "DiscordToGame": true, "Joins": true, "Leaves": true, "Deaths": true, "ServerStartStop": true, "TemporalStorms": true }
+  "Relay": { "DiscordToGame": true, "Joins": true, "Leaves": true, "Deaths": true, "DeathCount": false, "ServerStartStop": true, "TemporalStorms": true }
 }
 ```
 
-**Bump `ConfigVersion` whenever a setting is added, renamed or removed.** On start, a file with a lower version is saved back with the new settings at their defaults and every existing value kept; a file at the current version is never rewritten (issue #14).
+**Bump `ConfigVersion` whenever a setting is added, renamed or removed.** On start, a file with a lower version is saved back with the new settings at their defaults and every existing value kept; a file at the current version is never rewritten (issue #14). Version 2 added `Relay.DeathCount` (default `false`: end death lines with thebasics' death count, #32, decision #52).
 
 ## Lifecycle
 
